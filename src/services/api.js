@@ -2,8 +2,12 @@ import axios from 'axios'
 import { store } from '../store'
 import { logout, setTokens } from '../store/authSlice'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://trade-hub-backend.onrender.com'
+// Ensure there's no trailing slash on API_BASE, and append /api
+const BASE_URL = API_BASE.endsWith('/') ? `${API_BASE}api` : `${API_BASE}/api`
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: BASE_URL,
   withCredentials: true,
 })
 
@@ -39,7 +43,7 @@ api.interceptors.response.use(
       original._retry = true
       isRefreshing = true
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true })
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true })
         store.dispatch(setTokens(data))
         processQueue(null, data.accessToken)
         original.headers.Authorization = `Bearer ${data.accessToken}`

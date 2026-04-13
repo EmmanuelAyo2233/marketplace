@@ -1,7 +1,9 @@
 import { io } from 'socket.io-client'
 import { store } from '../store'
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://trade-hub-backend.onrender.com'
+// Remove trailing slash if any for the socket connection
+const SOCKET_URL = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE
 
 let socket = null
 
