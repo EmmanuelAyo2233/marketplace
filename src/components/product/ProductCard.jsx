@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { ShoppingCart, Store, Heart } from 'lucide-react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { addToCart } from '../../store/cartSlice'
+import { selectCurrentUser } from '../../store/authSlice'
 import { formatCurrency, imgUrl, truncate } from '../../utils/helpers'
 import { Stars } from '../common'
 import toast from 'react-hot-toast'
@@ -9,6 +10,8 @@ import { motion } from 'framer-motion'
 
 function ProductCard({ product, showCompare, onCompare, isCompared }) {
   const dispatch = useDispatch()
+  const user = useSelector(selectCurrentUser)
+  const isBuyerOnly = !user?.role || user?.role === 'buyer'
 
   const handleAddToCart = (e) => {
     e.preventDefault()
@@ -51,7 +54,7 @@ function ProductCard({ product, showCompare, onCompare, isCompared }) {
         )}
 
         {/* Quick Add Button */}
-        {product.stockQty > 0 && (
+        {isBuyerOnly && product.stockQty > 0 && (
           <button 
             onClick={handleAddToCart}
             className="absolute bottom-3 right-3 w-10 h-10 bg-brand-600 text-white rounded-xl flex items-center justify-center

@@ -2,37 +2,14 @@ import api from './api'
 
 // AUTH
 export const authAPI = {
-  register: async (data) => {
-    try {
-      return await api.post('/auth/register', data)
-    } catch (err) {
-      // Fallback for UI testing when Backend/MongoDB is down
-      console.warn("Backend unavailable. Using mocked registration response.")
-      return { 
-        data: { 
-          user: { _id: "123", name: data.name || "Test Server", email: data.email, role: data.role }, 
-          accessToken: "mocked_token" 
-        } 
-      }
-    }
-  },
-  login: async (data) => {
-    try {
-      return await api.post('/auth/login', data)
-    } catch (err) {
-      // Fallback for UI testing when Backend/MongoDB is down
-      console.warn("Backend unavailable. Using mocked login response.")
-      return { 
-        data: { 
-          user: { _id: "123", name: "Test User", email: data.email, role: "buyer" }, 
-          accessToken: "mocked_token" 
-        } 
-      }
-    }
-  },
+  register: async (data) => api.post('/auth/register', data),
+  login:    async (data) => api.post('/auth/login', data),
   logout:    ()     => api.post('/auth/logout'),
   refresh:   ()     => api.post('/auth/refresh'),
   me:        ()     => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/profile', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 }
 
 // MOCK DATA FACTORIES
@@ -46,30 +23,30 @@ const generateOrders = (n) => Array(n).fill(0).map((_, i) => ({
 
 // PRODUCTS
 export const productsAPI = {
-  getAll:    async (params) => ({ data: { products: generateProducts(12), pages: 1 } }),
-  getOne:    async (id)     => ({ data: { product: generateProducts(1)[0] } }),
-  compare:   async (ids)    => ({ data: generateProducts(2) }),
-  create:    async (data)   => ({ data: { product: generateProducts(1)[0] } }),
-  update:    async (id, d)  => ({ data: { product: generateProducts(1)[0] } }),
-  delete:    async (id)     => ({ data: { success: true } }),
-  myProducts:async ()       => ({ data: { products: generateProducts(5) } }),
+  getAll:    async (params) => api.get('/products', { params }),
+  getOne:    async (id)     => api.get(`/products/${id}`),
+  compare:   async (ids)    => api.get('/products/compare', { params: { ids } }),
+  create:    async (data)   => api.post('/products', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update:    async (id, d)  => api.put(`/products/${id}`, d, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  delete:    async (id)     => api.delete(`/products/${id}`),
+  myProducts:async ()       => api.get('/products/me'),
 }
 
 // VENDORS
 export const vendorsAPI = {
-  getStore:  async (slug)  => ({ data: { vendor: { storeName: 'Super Store', vendorDescription: 'The best mock store forever.'}, products: generateProducts(6) } }),
-  updateMe:  async (data)  => ({ data: { vendor: { storeName: 'Updated Store' } } }),
-  getStats:  async ()      => ({ data: { stats: { productCount: 45, orderCount: 128 } } }),
+  getStore:  async (slug)  => api.get(`/vendors/${slug}`),
+  updateMe:  async (data)  => api.put('/vendors/me', data),
+  getStats:  async ()      => api.get('/vendors/me/stats'),
 }
 
 // ORDERS
 export const ordersAPI = {
-  create:        async (data) => ({ data: { order: generateOrders(1)[0] } }),
-  myOrders:      async ()     => ({ data: { orders: generateOrders(4) } }),
-  vendorOrders:  async ()     => ({ data: { orders: generateOrders(6) } }),
-  getOne:        async (id)   => ({ data: { order: generateOrders(1)[0] } }),
-  ship:          async (id)   => ({ data: { order: { status: 'shipped' } } }),
-  confirmDelivery:async (id)  => ({ data: { order: { status: 'completed' } } }),
+  create:         async (data) => api.post('/orders', data),
+  myOrders:       async ()     => api.get('/orders/me'),
+  vendorOrders:   async ()     => api.get('/orders/vendor'),
+  getOne:         async (id)   => api.get(`/orders/${id}`),
+  ship:           async (id)   => api.patch(`/orders/${id}/ship`),
+  confirmDelivery:async (id)   => api.patch(`/orders/${id}/confirm`),
 }
 
 // PAYMENTS
@@ -80,8 +57,8 @@ export const paymentsAPI = {
 
 // WALLETS
 export const walletAPI = {
-  getMe:    async ()     => ({ data: { wallet: { availableBalance: 1250000, ledgerBalance: 1300000, totalEarned: 5200000 } } }),
-  withdraw: async (data) => ({ data: { success: true } }),
+  getMe:    async ()     => api.get('/wallets/me'),
+  withdraw: async (data) => api.post('/wallets/withdraw', data),
 }
 
 // DISPUTES
@@ -90,4 +67,40 @@ export const disputesAPI = {
   getAll:  async ()      => ({ data: { disputes: [] } }),
   getOne:  async (id)    => ({ data: { dispute: { _id: 'disp_1' } } }),
   resolve: async (id, d) => ({ data: { dispute: { status: 'resolved' } } }),
+}
+
+// ADMIN
+export const adminAPI = {
+  getUsers: () => api.get('/admin/users'),
+  getStats: () => api.get('/admin/stats'),
+  getWallet: () => api.get('/admin/wallet'),
+  getVendors: () => api.get('/admin/vendors'),
+  getBuyers: () => api.get('/admin/buyers'),
+  toggleUserStatus: (id, isActive) => api.patch(`/admin/users/${id}/status`, { isActive }),
+  toggleVendorApproval: (id, isApproved) => api.patch(`/admin/vendors/${id}/approval`, { isApproved }),
+}
+
+// WISHLIST
+export const wishlistAPI = {
+  getAll:     async ()           => api.get('/wishlist'),
+  toggle:     async (productId)  => api.post('/wishlist/toggle', { productId }),
+  getIds:     async ()           => api.get('/wishlist/ids'),
+}
+
+// CHAT
+export const chatAPI = {
+  getConversations:  async ()               => api.get('/chat/conversations'),
+  startConversation: async (vendorId)        => api.post('/chat/conversations', { vendorId }),
+  getMessages:       async (conversationId)  => api.get(`/chat/conversations/${conversationId}/messages`),
+  sendMessage:       async (conversationId, content) => api.post(`/chat/conversations/${conversationId}/messages`, { content }),
+  sendImage:         async (conversationId, formData) => api.post(`/chat/conversations/${conversationId}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getUnreadCount:    async ()               => api.get('/chat/unread'),
+}
+
+// NOTIFICATIONS
+export const notificationsAPI = {
+  getAll:        async ()   => api.get('/notifications'),
+  getUnreadCount: async ()  => api.get('/notifications/unread'),
+  markAsRead:    async (id) => api.put(`/notifications/${id}/read`),
+  markAllRead:   async ()   => api.put('/notifications/read-all'),
 }

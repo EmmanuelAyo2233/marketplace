@@ -1,68 +1,63 @@
-import User from '../models/User.js';
+import Vendor from '../models/Vendor.js';
 import Product from '../models/Product.js';
-import Order from '../models/Order.js';
 
 // @desc    Get vendor store by slug
-// @route   GET /api/vendors/:slug
-// @access  Public
-export const getStoreBySlug = async (req, res) => {
-  const vendor = await User.findOne({ vendorSlug: req.params.slug, role: 'vendor' }).select('-password');
-  
-  if (!vendor) {
-    res.status(404);
-    throw new Error('Store not found');
-  }
+export const getStoreBySlug = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findStoreBySlug(req.params.slug);
+    
+    if (!vendor) {
+      res.status(404);
+      return next(new Error('Store not found'));
+    }
 
-  const products = await Product.find({ vendor: vendor._id });
-  
-  res.json({ vendor, products });
+    if (vendor.isActive === 0 || vendor.isApproved === 0) {
+      res.status(403);
+      return next(new Error('Store is currently unavailable.'));
+    }
+
+    const products = await Product.findByVendorId(vendor.userId);
+    
+    // Format response
+    const formattedVendor = {
+      _id: vendor.userId,
+      storeName: vendor.storeName,
+      storeSlug: vendor.storeSlug,
+      storeDescription: vendor.storeDescription,
+      avatar: vendor.avatar,
+      location: vendor.location
+    };
+
+    const formattedProducts = products.filter(p => p.isActive === 1).map(p => ({
+      _id: p._id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      images: [p.image || 'https://placehold.co/400x400/e2e8f0/94a3b8?text=No+Image'],
+      category: p.category,
+      stockQty: p.countInStock,
+      isActive: true
+    }));
+
+    res.json({ vendor: formattedVendor, products: formattedProducts });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // @desc    Update vendor profile
-// @route   PUT /api/vendors/me
-// @access  Private/Vendor
 export const updateVendorProfile = async (req, res) => {
-  const user = await User.findById(req.user._id);
-
-  if (user) {
-    user.name = req.body.name || user.name;
-    user.vendorSlug = req.body.vendorSlug || user.vendorSlug;
-    user.vendorDescription = req.body.vendorDescription || user.vendorDescription;
-    
-    if (req.body.password) {
-      user.password = req.body.password;
-    }
-
-    const updatedUser = await user.save();
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      vendorSlug: updatedUser.vendorSlug,
-      vendorDescription: updatedUser.vendorDescription,
-    });
-  } else {
-    res.status(404);
-    throw new Error('User not found');
-  }
+  // Logic migrated to authController / User model
+  // Keeping as placeholder to not break route imports
+  res.status(400).json({ message: 'Please use the unified profile update endpoint.' });
 };
 
 // @desc    Get vendor stats
-// @route   GET /api/vendors/me/stats
-// @access  Private/Vendor
-export const getVendorStats = async (req, res) => {
-  const productsCount = await Product.countDocuments({ vendor: req.user._id });
-  const orders = await Order.find({ vendor: req.user._id });
-  
-  const totalSales = orders.reduce((acc, order) => {
-    return order.isPaid ? acc + order.totalPrice : acc;
-  }, 0);
-  
-  res.json({
-    productsCount,
-    ordersCount: orders.length,
-    totalSales,
-    walletBalance: req.user.walletBalance,
-  });
+export const getVendorStats = async (req, res, next) => {
+  try {
+    const stats = await Vendor.getVendorStats(req.user._id);
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
 };

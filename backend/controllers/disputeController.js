@@ -1,105 +1,89 @@
 import Dispute from '../models/Dispute.js';
 import Order from '../models/Order.js';
+import User from '../models/User.js';
 
 // @desc    Raise a dispute
-// @route   POST /api/disputes
-// @access  Private/Buyer
-export const raiseDispute = async (req, res) => {
-  const { orderId, reason } = req.body;
+export const raiseDispute = async (req, res, next) => {
+  try {
+    const { orderId, reason } = req.body;
 
-  const order = await Order.findById(orderId);
+    const order = await Order.getOrderById(orderId);
 
-  if (!order || order.buyer.toString() !== req.user._id.toString()) {
-    res.status(404);
-    throw new Error('Order not found or unauthorized');
+    if (!order || order.buyer._id.toString() !== req.user._id.toString()) {
+      res.status(404);
+      return next(new Error('Order not found or unauthorized'));
+    }
+
+    // Check if dispute already exists
+    const existingDispute = await Dispute.findByOrderId(orderId);
+    if (existingDispute) {
+      res.status(400);
+      return next(new Error('Dispute already exists for this order'));
+    }
+
+    await Order.updateOrderStatus(orderId, 'disputed');
+    
+    const createdDispute = await Dispute.create(orderId, req.user._id, order.vendor._id, reason);
+    res.status(201).json(createdDispute);
+  } catch (err) {
+    next(err);
   }
-
-  // Check if dispute already exists
-  const existingDispute = await Dispute.findOne({ order: orderId });
-  if (existingDispute) {
-    res.status(400);
-    throw new Error('Dispute already exists for this order');
-  }
-
-  const dispute = new Dispute({
-    order: orderId,
-    buyer: req.user._id,
-    vendor: order.vendor,
-    reason,
-  });
-
-  order.status = 'disputed';
-  await order.save();
-
-  const createdDispute = await dispute.save();
-  res.status(201).json(createdDispute);
 };
 
 // @desc    Get all disputes
-// @route   GET /api/disputes
-// @access  Private/Admin
-export const getDisputes = async (req, res) => {
-  const disputes = await Dispute.find({})
-    .populate('buyer', 'name email')
-    .populate('vendor', 'name vendorSlug')
-    .populate('order', 'totalPrice createdAt');
-  res.json(disputes);
+export const getDisputes = async (req, res, next) => {
+  try {
+    const disputes = await Dispute.findAll();
+    res.json(disputes);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // @desc    Get dispute by ID
-// @route   GET /api/disputes/:id
-// @access  Private/Admin
-export const getDisputeById = async (req, res) => {
-  const dispute = await Dispute.findById(req.params.id)
-    .populate('buyer', 'name email')
-    .populate('vendor', 'name vendorSlug')
-    .populate('order');
+export const getDisputeById = async (req, res, next) => {
+  try {
+    const dispute = await Dispute.findById(req.params.id);
 
-  if (dispute) {
-    res.json(dispute);
-  } else {
-    res.status(404);
-    throw new Error('Dispute not found');
+    if (dispute) {
+      res.json(dispute);
+    } else {
+      res.status(404);
+      return next(new Error('Dispute not found'));
+    }
+  } catch (err) {
+    next(err);
   }
 };
 
 // @desc    Resolve dispute
-// @route   PATCH /api/disputes/:id/resolve
-// @access  Private/Admin
-export const resolveDispute = async (req, res) => {
-  const { resolutionNotes, refundBuyer } = req.body;
+export const resolveDispute = async (req, res, next) => {
+  try {
+    const { resolutionNotes, refundBuyer } = req.body;
 
-  const dispute = await Dispute.findById(req.params.id).populate('order');
+    const dispute = await Dispute.findById(req.params.id);
 
-  if (dispute) {
-    dispute.status = refundBuyer ? 'resolved_buyer' : 'resolved_vendor';
-    dispute.resolutionNotes = resolutionNotes;
-
-    const order = dispute.order;
-    
-    if (refundBuyer) {
-      // Logic to refund buyer would go here
-      order.status = 'delivered'; // or cancelled, depending on biz logic
-    } else {
-      // Release funds to vendor
-      import('../models/User.js').then(async ({ default: User }) => {
-        const vendorUser = await User.findById(order.vendor);
+    if (dispute) {
+      const status = refundBuyer ? 'resolved_buyer' : 'resolved_vendor';
+      
+      if (refundBuyer) {
+        await Order.markDelivered(dispute.order._id);
+      } else {
+        const vendorUser = await User.findById(dispute.vendor._id);
         if (vendorUser) {
-          vendorUser.walletBalance += order.totalPrice * 0.9;
-          await vendorUser.save();
+          const newBalance = parseFloat(vendorUser.walletBalance) + (dispute.order.totalPrice * 0.9);
+          await User.updateWalletBalance(vendorUser.id, newBalance);
         }
-      });
-      order.status = 'delivered';
-      order.isDelivered = true;
-      order.deliveredAt = Date.now();
+        await Order.markDelivered(dispute.order._id);
+      }
+      
+      const updatedDispute = await Dispute.resolve(req.params.id, status, resolutionNotes);
+      res.json(updatedDispute);
+    } else {
+      res.status(404);
+      return next(new Error('Dispute not found'));
     }
-    
-    await order.save();
-
-    const updatedDispute = await dispute.save();
-    res.json(updatedDispute);
-  } else {
-    res.status(404);
-    throw new Error('Dispute not found');
+  } catch (err) {
+    next(err);
   }
 };

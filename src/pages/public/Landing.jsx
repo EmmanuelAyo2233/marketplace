@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules'
@@ -6,11 +6,14 @@ import 'swiper/css'
 import 'swiper/css/effect-fade'
 import 'swiper/css/pagination'
 import { motion } from 'framer-motion'
-import { 
+import {
   Search, Shield, Zap, Store, ArrowRight,
   MonitorSmartphone, Shirt, Camera, Home, Coffee, Dumbbell,
   CheckCircle, Quote
 } from 'lucide-react'
+import { productsAPI } from '../../services/endpoints'
+import ProductCard from '../../components/product/ProductCard'
+import { formatCurrency, imgUrl } from '../../utils/helpers'
 
 // --- Data ---
 const HERO_SLIDES = [
@@ -65,12 +68,7 @@ const CATEGORIES = [
   { name: 'Photography',    icon: Camera,            color: 'text-indigo-600', bg: 'bg-indigo-50/50 group-hover:bg-indigo-100' },
 ]
 
-const FEATURED_PRODUCTS = [
-  { id: '1', name: 'Sony Alpha a7 III Mirrorless Camera', price: 950000, category: 'Electronics', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=500' },
-  { id: '2', name: 'Minimalist Ceramic Vase Set', price: 24000, category: 'Home & Living', image: 'https://images.unsplash.com/photo-1612152605347-f93296cb657d?auto=format&fit=crop&q=80&w=500' },
-  { id: '3', name: 'Premium Leather Weekend Bag', price: 45000, category: 'Fashion', image: 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=500' },
-  { id: '4', name: 'Pro Yoga Mat with Alignment Lines', price: 18500, category: 'Sports', image: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&q=80&w=500' },
-]
+
 
 const TESTIMONIALS = [
   { name: 'Sarah O.', role: 'Fashion Vendor', text: "TradeHub completely transformed my business. The Escrow system guarantees I get paid for every delivery without the usual hustle.", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" },
@@ -92,6 +90,16 @@ const staggerContainer = {
 export default function Landing() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [featuredProducts, setFeaturedProducts] = useState([])
+
+  useEffect(() => {
+    productsAPI.getAll()
+      .then(({ data }) => {
+        const all = data.products || data || []
+        setFeaturedProducts(all.slice(0, 8))
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -102,39 +110,62 @@ export default function Landing() {
   return (
     <div className="bg-white">
       {/* ── 1. Hero Section (Carousel) ── */}
-      <section className="relative h-[85vh] min-h-[600px] w-full bg-brand-600 overflow-hidden">
+      <section className="relative h-[85vh] min-h-[600px] w-full overflow-hidden">
+        {/* Slow down Swiper fade transition via inline style override */}
+        <style>{`
+          .hero-swiper .swiper-slide { transition: opacity 1.2s ease !important; }
+          .hero-swiper .swiper-pagination { bottom: 24px !important; }
+          .hero-swiper .swiper-pagination-bullet {
+            width: 10px; height: 10px;
+            background: rgba(255,255,255,0.45);
+            opacity: 1;
+            transition: all 0.3s ease;
+          }
+          .hero-swiper .swiper-pagination-bullet-active {
+            background: white;
+            width: 26px;
+            border-radius: 999px;
+          }
+        `}</style>
+
         <Swiper
           modules={[Autoplay, EffectFade, Pagination]}
           effect="fade"
-          pagination={{ clickable: true, bulletClass: 'swiper-pagination-bullet !bg-white/50', bulletActiveClass: 'swiper-pagination-bullet-active !bg-white' }}
+          fadeEffect={{ crossFade: true }}
+          pagination={{ clickable: true }}
           autoplay={{ delay: 5500, disableOnInteraction: false }}
           loop={true}
-          className="h-full w-full"
+          className="h-full w-full hero-swiper"
         >
           {HERO_SLIDES.map((slide) => (
-            <SwiperSlide key={slide.id} className="relative h-full w-full overflow-hidden">
-              <div className="absolute inset-0 z-0">
-                <img src={slide.image} alt={slide.title} className="h-full w-full object-cover opacity-60 mix-blend-overlay" />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-transparent z-10" />
-              
-              <div className="relative z-20 h-full flex items-center page-container">
+            <SwiperSlide key={slide.id} className="relative h-full w-full">
+              {/* Image — NO mix-blend-overlay, just a plain image with a dark overlay on top */}
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Gradient overlay sitting on top of image */}
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-900/25" />
+
+              <div className="relative z-10 h-full flex items-center page-container">
                 <div className="max-w-2xl px-4 sm:px-0">
-                  <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}>
-                    <span className="inline-block px-3 py-1 mb-5 text-xs font-bold tracking-widest uppercase text-white bg-brand-500/20 border border-brand-400/30 rounded-full backdrop-blur-md">
-                      {slide.category}
-                    </span>
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
-                      {slide.title}
-                    </h1>
-                    <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-lg leading-relaxed">
-                      {slide.subtitle}
-                    </p>
-                    <button onClick={() => navigate(`/products?category=${slide.category}`)} className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 hover:shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all duration-300 flex items-center gap-3 group">
-                      {slide.cta}
-                      <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
-                    </button>
-                  </motion.div>
+                  <span className="inline-block px-3 py-1 mb-5 text-xs font-bold tracking-widest uppercase text-white bg-white/10 border border-white/20 rounded-full">
+                    {slide.category}
+                  </span>
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-extrabold text-white leading-[1.1] mb-6 tracking-tight">
+                    {slide.title}
+                  </h1>
+                  <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-lg leading-relaxed">
+                    {slide.subtitle}
+                  </p>
+                  <button
+                    onClick={() => navigate(`/products?category=${slide.category}`)}
+                    className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 hover:shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all duration-300 flex items-center gap-3 group"
+                  >
+                    {slide.cta}
+                    <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
+                  </button>
                 </div>
               </div>
             </SwiperSlide>
@@ -229,44 +260,32 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── 4. Editor's Picks ── */}
+      {/* ── 4. Trending Now ── */}
       <section className="bg-slate-50 py-24">
         <div className="page-container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeInUp} className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-extrabold text-slate-900 mb-4 tracking-tight">Editor's Picks</h2>
-              <p className="text-slate-500 text-lg">Handpicked premium products just for you.</p>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-extrabold text-slate-900 mb-4 tracking-tight">Trending Now</h2>
+              <p className="text-slate-500 text-lg">Discover what everyone is buying right now.</p>
             </div>
             <Link to="/products" className="group flex items-center gap-2 text-brand-600 font-bold hover:text-brand-800 transition-colors bg-brand-50 px-6 py-3 rounded-xl border border-brand-100">
               View All <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
 
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {FEATURED_PRODUCTS.map((product) => (
-              <motion.div key={product.id} variants={fadeInUp}>
-                <Link to={`/products/${product.id}`} className="group block bg-white rounded-[1.5rem] overflow-hidden border border-slate-100 hover:shadow-[0_20px_60px_rgb(0,0,0,0.06)] hover:-translate-y-2 transition-all duration-400">
-                  <div className="aspect-[4/3] bg-slate-50 overflow-hidden relative">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]" />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest text-slate-800 shadow-sm border border-white/20">
-                      {product.category}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-slate-800 mb-2 line-clamp-1 group-hover:text-brand-600 transition-colors text-[17px]">{product.name}</h3>
-                    <div className="flex items-center justify-between mt-6 pt-5 border-t border-slate-50">
-                      <span className="font-display font-extrabold text-xl text-slate-900 tracking-tight">
-                        ₦{product.price.toLocaleString()}
-                      </span>
-                      <button className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-colors duration-300">
-                        <ArrowRight size={18} className="-rotate-45" />
-                      </button>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+          {featuredProducts.length > 0 ? (
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={staggerContainer} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+              {featuredProducts.map((product) => (
+                <motion.div key={product._id} variants={fadeInUp}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-slate-400 text-sm">Loading products...</p>
+            </div>
+          )}
         </div>
       </section>
 

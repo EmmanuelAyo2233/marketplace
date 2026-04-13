@@ -1,31 +1,34 @@
 import Order from '../models/Order.js';
+import User from '../models/User.js';
+import { createEscrow, releaseEscrow } from './walletController.js';
 
 // @desc    Create new order
-// @route   POST /api/orders
-// @access  Private
-export const createOrder = async (req, res) => {
-  const {
-    orderItems,
-    shippingAddress,
-    paymentMethod,
-    itemsPrice,
-    taxPrice,
-    shippingPrice,
-    totalPrice,
-    vendorId, // Frontend should pass vendorId
-  } = req.body;
-
-  if (orderItems && orderItems.length === 0) {
-    res.status(400);
-    throw new Error('No order items');
-  } else {
-    // For MVP, assume checkout groups by vendor and creates one order per vendor.
-    // If frontend sends mixed vendor items, they need to be split. We'll assume the frontend sends vendorId.
-    const order = new Order({
+export const createOrder = async (req, res, next) => {
+  try {
+    const {
       orderItems,
-      buyer: req.user._id,
-      vendor: vendorId, // We need this from frontend
       shippingAddress,
+      paymentMethod,
+      itemsPrice,
+      taxPrice,
+      shippingPrice,
+      totalPrice,
+      vendorId, 
+    } = req.body;
+
+    if (!orderItems || orderItems.length === 0) {
+      res.status(400);
+      return next(new Error('No order items'));
+    }
+
+    const createdOrder = await Order.createOrder({
+      orderItems,
+      buyerId: req.user._id,
+      vendorId: vendorId,
+      shippingAddress: shippingAddress.address,
+      shippingCity: shippingAddress.city,
+      shippingPostalCode: shippingAddress.postalCode,
+      shippingCountry: shippingAddress.country,
       paymentMethod,
       itemsPrice,
       taxPrice,
@@ -33,96 +36,102 @@ export const createOrder = async (req, res) => {
       totalPrice,
     });
 
-    const createdOrder = await order.save();
+    // Create escrow entry so vendor sees pending balance
+    try {
+      await createEscrow(vendorId, createdOrder._id || createdOrder.id, totalPrice);
+    } catch (escrowErr) {
+      console.error('Escrow creation failed:', escrowErr.message);
+    }
+
     res.status(201).json(createdOrder);
+  } catch (err) {
+    next(err);
   }
 };
 
 // @desc    Get order by ID
-// @route   GET /api/orders/:id
-// @access  Private
-export const getOrderById = async (req, res) => {
-  const order = await Order.findById(req.params.id)
-    .populate('buyer', 'name email')
-    .populate('vendor', 'name email vendorSlug');
+export const getOrderById = async (req, res, next) => {
+  try {
+    const order = await Order.getOrderById(req.params.id);
 
-  if (order) {
-    // Check if the user is authorized to view this order
-    if (
-      order.buyer._id.toString() === req.user._id.toString() ||
-      order.vendor._id.toString() === req.user._id.toString() ||
-      req.user.role === 'admin'
-    ) {
-      res.json(order);
+    if (order) {
+      if (
+        order.buyer._id.toString() === req.user._id.toString() ||
+        order.vendor._id.toString() === req.user._id.toString() ||
+        req.user.role === 'admin'
+      ) {
+        res.json(order);
+      } else {
+        res.status(401);
+        return next(new Error('Not authorized to view this order'));
+      }
     } else {
-      res.status(401);
-      throw new Error('Not authorized to view this order');
+      res.status(404);
+      return next(new Error('Order not found'));
     }
-  } else {
-    res.status(404);
-    throw new Error('Order not found');
+  } catch (err) {
+    next(err);
   }
 };
 
 // @desc    Get logged in buyer's orders
-// @route   GET /api/orders/me
-// @access  Private
-export const getMyOrders = async (req, res) => {
-  const orders = await Order.find({ buyer: req.user._id }).populate('vendor', 'name');
-  res.json(orders);
+export const getMyOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.findBuyerOrders(req.user._id);
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // @desc    Get vendor's orders
-// @route   GET /api/orders/vendor
-// @access  Private/Vendor
-export const getVendorOrders = async (req, res) => {
-  const orders = await Order.find({ vendor: req.user._id }).populate('buyer', 'name');
-  res.json(orders);
+export const getVendorOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.findVendorOrders(req.user._id);
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // @desc    Mark order as shipped
-// @route   PATCH /api/orders/:id/ship
-// @access  Private/Vendor
-export const shipOrder = async (req, res) => {
-  const order = await Order.findById(req.params.id);
+export const shipOrder = async (req, res, next) => {
+  try {
+    const order = await Order.getOrderById(req.params.id);
 
-  if (order && order.vendor.toString() === req.user._id.toString()) {
-    order.isShipped = true;
-    order.shippedAt = Date.now();
-    order.status = 'shipped';
-
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
-  } else {
-    res.status(404);
-    throw new Error('Order not found or unauthorized');
+    if (order && order.vendor._id.toString() === req.user._id.toString()) {
+      const updatedOrder = await Order.markShipped(req.params.id);
+      res.json(updatedOrder);
+    } else {
+      res.status(404);
+      return next(new Error('Order not found or unauthorized'));
+    }
+  } catch (err) {
+    next(err);
   }
 };
 
 // @desc    Confirm delivery of order
-// @route   PATCH /api/orders/:id/confirm
-// @access  Private/Buyer
-export const confirmDelivery = async (req, res) => {
-  const order = await Order.findById(req.params.id);
+export const confirmDelivery = async (req, res, next) => {
+  try {
+    const order = await Order.getOrderById(req.params.id);
 
-  if (order && order.buyer.toString() === req.user._id.toString()) {
-    order.isDelivered = true;
-    order.deliveredAt = Date.now();
-    order.status = 'delivered';
+    if (order && order.buyer._id.toString() === req.user._id.toString()) {
+      const updatedOrder = await Order.markDelivered(req.params.id);
 
-    // Escrow logic: release funds to vendor wallet
-    import('../models/User.js').then(async ({ default: User }) => {
-      const vendorUser = await User.findById(order.vendor);
-      if (vendorUser) {
-        vendorUser.walletBalance += order.totalPrice * 0.9; // e.g. 10% platform fee
-        await vendorUser.save();
+      // Release escrow to vendor wallet
+      try {
+        await releaseEscrow(order.vendor._id, order._id || req.params.id);
+      } catch (escrowErr) {
+        console.error('Escrow release failed:', escrowErr.message);
       }
-    });
 
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
-  } else {
-    res.status(404);
-    throw new Error('Order not found or unauthorized');
+      res.json(updatedOrder);
+    } else {
+      res.status(404);
+      return next(new Error('Order not found or unauthorized'));
+    }
+  } catch (err) {
+    next(err);
   }
 };

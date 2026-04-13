@@ -6,6 +6,7 @@ import { selectCartItems, selectCartTotal, removeFromCart, updateQty, clearCart 
 import { formatCurrency, imgUrl } from '../../utils/helpers'
 import { EmptyState } from '../../components/common'
 import { selectIsAuth } from '../../store/authSlice'
+import toast from 'react-hot-toast'
 
 export function Cart() {
   const dispatch  = useDispatch()
@@ -33,7 +34,9 @@ export function Cart() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items */}
         <div className="lg:col-span-2 space-y-3">
-          {items.map(item => (
+          {items.map(item => {
+            const atMax = item.quantity >= (item.stockQty || 99)
+            return (
             <div key={item._id} className="card p-4 flex gap-4">
               <div className="w-20 h-20 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
                 <img src={imgUrl(item.images?.[0])} alt={item.name} className="w-full h-full object-cover" />
@@ -49,22 +52,30 @@ export function Cart() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
-                    <button onClick={() => dispatch(updateQty({ id: item._id, quantity: item.quantity - 1 }))}
-                      className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-600">
-                      <Minus size={13} />
-                    </button>
-                    <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
-                    <button onClick={() => dispatch(updateQty({ id: item._id, quantity: item.quantity + 1 }))}
-                      className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-600">
-                      <Plus size={13} />
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                      <button onClick={() => dispatch(updateQty({ id: item._id, quantity: item.quantity - 1 }))}
+                        className="w-7 h-7 flex items-center justify-center hover:bg-slate-100 text-slate-600">
+                        <Minus size={13} />
+                      </button>
+                      <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
+                      <button onClick={() => {
+                          if (atMax) { toast.error(`Only ${item.stockQty} available`); return }
+                          dispatch(updateQty({ id: item._id, quantity: item.quantity + 1 }))
+                        }}
+                        disabled={atMax}
+                        className={`w-7 h-7 flex items-center justify-center text-slate-600 transition-colors ${atMax ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}>
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                    {atMax && <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Max</span>}
                   </div>
                   <span className="font-bold text-brand-700">{formatCurrency(item.price * item.quantity)}</span>
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
           <button onClick={() => dispatch(clearCart())} className="btn-ghost text-red-500 text-sm">
             <Trash2 size={14} /> Clear cart
           </button>

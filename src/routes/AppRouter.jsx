@@ -17,6 +17,7 @@ import ProductDetail  from '../pages/public/ProductDetail'
 import VendorStore    from '../pages/public/VendorStore'
 import Cart           from '../pages/public/Cart'
 import Checkout       from '../pages/public/Checkout'
+import ContactUs      from '../pages/public/ContactUs'
 
 // Auth pages
 import Login    from '../pages/auth/Login'
@@ -34,17 +35,23 @@ import OrderDetail    from '../pages/buyer/OrderDetail'
 import Wishlist       from '../pages/buyer/Wishlist'
 
 // Vendor pages
-import VendorDashboard from '../pages/vendor/VendorDashboard'
-import MyProducts      from '../pages/vendor/MyProducts'
-import AddProduct      from '../pages/vendor/AddProduct'
-import EditProduct     from '../pages/vendor/EditProduct'
-import VendorOrders    from '../pages/vendor/VendorOrders'
-import VendorWallet    from '../pages/vendor/VendorWallet'
+import VendorDashboard  from '../pages/vendor/VendorDashboard'
+import MyProducts       from '../pages/vendor/MyProducts'
+import AddProduct       from '../pages/vendor/AddProduct'
+import EditProduct      from '../pages/vendor/EditProduct'
+import VendorOrders     from '../pages/vendor/VendorOrders'
+import VendorWallet     from '../pages/vendor/VendorWallet'
+import VendorAnalytics  from '../pages/vendor/VendorAnalytics'
+import MyStore          from '../pages/vendor/MyStore'
 
 // Admin pages
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import DisputeList    from '../pages/admin/DisputeList'
 import DisputeDetail  from '../pages/admin/DisputeDetail'
+import UserManagement from '../pages/admin/UserManagement'
+import AdminVendors   from '../pages/admin/AdminVendors'
+import AdminBuyers    from '../pages/admin/AdminBuyers'
+import AdminWallet    from '../pages/admin/AdminWallet'
 
 function ProtectedRoute({ children, roles }) {
   const isAuth = useSelector(selectIsAuth)
@@ -64,6 +71,7 @@ function AppRouter() {
           <Route path="/"           element={<Landing />} />
           <Route path="/features"   element={<Features />} />
           <Route path="/about"      element={<AboutUs />} />
+          <Route path="/contact"    element={<ContactUs />} />
           <Route path="/products"   element={<ProductListing />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/store/:slug" element={<VendorStore />} />
@@ -94,6 +102,8 @@ function AppRouter() {
           <Route path="products/:id/edit" element={<EditProduct />} />
           <Route path="orders"            element={<VendorOrders />} />
           <Route path="wallet"            element={<VendorWallet />} />
+          <Route path="analytics"         element={<VendorAnalytics />} />
+          <Route path="my-store"          element={<MyStore />} />
           <Route path="messages"          element={<Messages />} />
           <Route path="notifs"            element={<Notifications />} />
           <Route path="settings"          element={<Settings />} />
@@ -102,8 +112,13 @@ function AppRouter() {
         {/* Admin Dashboard */}
         <Route path="/admin" element={<ProtectedRoute roles={['admin']}><DashboardLayout role="admin" /></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
+          <Route path="users"         element={<UserManagement />} />
+          <Route path="vendors"       element={<AdminVendors />} />
+          <Route path="buyers"        element={<AdminBuyers />} />
+          <Route path="wallet"        element={<AdminWallet />} />
           <Route path="disputes"      element={<DisputeList />} />
           <Route path="disputes/:id"  element={<DisputeDetail />} />
+          <Route path="notifs"        element={<Notifications />} />
         </Route>
 
         {/* Fallback */}

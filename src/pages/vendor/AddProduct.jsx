@@ -17,9 +17,9 @@ export function AddProduct() {
     try {
       const form = new FormData()
       Object.entries(data).forEach(([key, val]) => {
-        if (key === 'images') {
-          Array.from(val || []).forEach(file => form.append('images', file))
-        } else {
+        if (key === 'images' && val && val.length > 0) {
+          form.append('image', val[0])
+        } else if (key !== 'images') {
           form.append(key, val)
         }
       })

@@ -39,5 +39,10 @@ export const toSlug = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').rep
 export const getErrorMsg = (err) =>
   err?.response?.data?.message || err?.message || 'Something went wrong'
 
-// Image URL fallback
-export const imgUrl = (url) => url || 'https://placehold.co/400x400/e2e8f0/94a3b8?text=No+Image'
+// Image URL fallback - handles relative /uploads paths from backend
+export const imgUrl = (url) => {
+  if (!url) return 'https://placehold.co/400x400/e2e8f0/94a3b8?text=No+Image'
+  if (url.startsWith('http')) return url
+  // Relative path like /uploads/... - Vite proxies this to backend in dev
+  return url
+}

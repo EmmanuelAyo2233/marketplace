@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
@@ -6,8 +6,10 @@ import {
   LogOut, Menu, X, Store, ChevronRight, User, Bell, Heart, MessageSquare, Settings, BarChart2, PlusCircle, Search, Compass
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { selectCurrentUser, logout } from '../../store/authSlice'
-import { authAPI } from '../../services/endpoints'
+import { selectCurrentUser, logout, updateUser } from '../../store/authSlice'
+import { authAPI, chatAPI, notificationsAPI } from '../../services/endpoints'
+import { connectSocket, getSocket } from '../../services/socket'
+import { imgUrl } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 
 const NAV = {
@@ -17,20 +19,25 @@ const NAV = {
     { to: '/buyer/wishlist',icon: Heart,           label: 'Wishlist'         },
     { to: '/buyer',         icon: ShoppingBag,     label: 'My Orders'        },
     { to: '/buyer/messages',icon: MessageSquare,   label: 'Messages'         },
-    { to: '/buyer/notifs',  icon: Bell,            label: 'Notifications'    },
     { to: '/buyer/settings',icon: Settings,        label: 'Settings'         },
   ],
   vendor: [
     { to: '/vendor',              icon: LayoutDashboard, label: 'Dashboard'  },
+    { to: '/vendor/my-store',     icon: Store,           label: 'My Store'   },
     { to: '/vendor/products',     icon: Package,         label: 'My Products'},
     { to: '/vendor/orders',       icon: ShoppingBag,     label: 'Orders'     },
     { to: '/vendor/analytics',    icon: BarChart2,       label: 'Analytics'  },
+    { to: '/vendor/wallet',       icon: Wallet,          label: 'Wallet'     },
     { to: '/vendor/messages',     icon: MessageSquare,   label: 'Messages'   },
-    { to: '/vendor/notifs',       icon: Bell,            label: 'Notifications'},
     { to: '/vendor/settings',     icon: Settings,        label: 'Settings'   },
   ],
   admin: [
-    { to: '/admin',           icon: LayoutDashboard, label: 'Overview'  },
+    { to: '/admin',           icon: LayoutDashboard, label: 'Overview'         },
+    { to: '/admin/vendors',   icon: Store,           label: 'Vendors'          },
+    { to: '/admin/buyers',    icon: Heart,           label: 'Buyers'           },
+    { to: '/admin/users',     icon: User,            label: 'All Users'        },
+    { to: '/admin/wallet',    icon: Wallet,          label: 'Platform Wallet'  },
+    { to: '/admin/disputes',  icon: Bell,            label: 'Disputes'         },
   ],
 }
 
@@ -56,8 +63,48 @@ function DashboardLayout({ role }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const [unreadMsgs, setUnreadMsgs] = useState(0)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
+
+  // Fetch unread counts + socket listeners
+  useEffect(() => {
+    chatAPI.getUnreadCount().then(({ data }) => setUnreadMsgs(data.unreadCount || 0)).catch(() => {})
+    notificationsAPI.getUnreadCount().then(({ data }) => setUnreadNotifs(data.unreadCount || 0)).catch(() => {})
+
+    const socket = connectSocket()
+    if (socket) {
+      socket.on('unread_update', ({ unreadCount }) => setUnreadMsgs(unreadCount))
+      socket.on('message_notification', () => setUnreadMsgs(prev => prev + 1))
+      socket.on('notif_count_update', ({ count }) => setUnreadNotifs(count))
+      socket.on('new_notification', () => setUnreadNotifs(prev => prev + 1))
+    }
+    return () => {
+      const s = getSocket()
+      if (s) {
+        s.off('unread_update')
+        s.off('message_notification')
+        s.off('notif_count_update')
+        s.off('new_notification')
+      }
+    }
+  }, [])
   
   const links = NAV[role] || []
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await authAPI.me()
+        if (data) {
+          dispatch(updateUser(data.user || data))
+        }
+      } catch (err) {
+        console.error('Error fetching fresh profile info:', err)
+      }
+    }
+    fetchProfile()
+  }, [dispatch])
 
   const handleLogout = async () => {
     try { await authAPI.logout() } catch {}
@@ -116,8 +163,12 @@ function DashboardLayout({ role }) {
           onClick={() => setProfileOpen(!profileOpen)}
           className={`flex items-center gap-3 w-full p-2 rounded-xl transition-all ${profileOpen ? 'bg-slate-800' : 'hover:bg-slate-800'}`}
         >
-          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-            <span className="font-bold text-white text-sm">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+            {user?.avatar ? (
+              <img src={imgUrl(user.avatar)} className="w-full h-full object-cover" alt="Avatar"/>
+            ) : (
+              <span className="font-bold text-white text-sm">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+            )}
           </div>
           <div className="flex-1 text-left min-w-0">
             <p className="text-sm font-bold text-white truncate">{user?.name || 'User'}</p>
@@ -148,12 +199,14 @@ function DashboardLayout({ role }) {
         </div>
 
         <div className="flex items-center gap-3 lg:gap-5">
-          <div className="relative group cursor-pointer">
-            <div className="p-2.5 bg-slate-50 text-slate-500 rounded-full hover:bg-brand-50 hover:text-brand-600 transition-colors">
-              <Bell size={20} />
-            </div>
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-          </div>
+          <Link to={`/${role}/notifs`} className="relative p-2.5 bg-slate-50 text-slate-500 rounded-full hover:bg-amber-50 hover:text-amber-500 transition-colors">
+            <Bell size={20} />
+            {unreadNotifs > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                {unreadNotifs > 9 ? '9+' : unreadNotifs}
+              </span>
+            )}
+          </Link>
         </div>
       </header>
 
@@ -167,8 +220,8 @@ function DashboardLayout({ role }) {
         <AnimatePresence>
           {mobileOpen && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden" />
-              <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="fixed inset-y-0 left-0 pt-[72px] w-[220px] z-30 md:hidden shadow-2xl">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-slate-900/60 z-40 md:hidden" />
+              <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: "spring", stiffness: 300, damping: 30 }} className="fixed inset-y-0 left-0 pt-[72px] w-[220px] z-50 md:hidden shadow-2xl">
                 <SidebarContent />
               </motion.aside>
             </>

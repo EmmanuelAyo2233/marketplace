@@ -1,31 +1,60 @@
-// @desc    Get logged in user wallet balance
-// @route   GET /api/wallets/me
-// @access  Private
-export const getMyWallet = async (req, res) => {
-  res.json({
-    balance: req.user.walletBalance,
-  });
+import WalletTransaction, { PLATFORM_FEE_PERCENT } from '../models/WalletTransactionModel.js';
+
+// @desc    Get vendor wallet summary + transactions
+export const getMyWallet = async (req, res, next) => {
+  try {
+    const summary = await WalletTransaction.getWalletSummary(req.user._id);
+    const transactions = await WalletTransaction.getTransactions(req.user._id);
+
+    res.json({
+      wallet: {
+        ...summary,
+        platformFeePercent: PLATFORM_FEE_PERCENT,
+      },
+      transactions,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// @desc    Withdraw from wallet
-// @route   POST /api/wallets/withdraw
-// @access  Private/Vendor
-export const withdrawWallet = async (req, res) => {
-  const { amount, bankDetails } = req.body;
+// @desc    Request a withdrawal
+export const withdrawWallet = async (req, res, next) => {
+  try {
+    const { amount, bankName, accountNumber, accountName } = req.body;
+    const amt = parseFloat(amount);
 
-  if (amount <= 0 || amount > req.user.walletBalance) {
-    res.status(400);
-    throw new Error('Invalid withdrawal amount');
+    if (!amt || amt <= 0) {
+      res.status(400);
+      return next(new Error('Invalid withdrawal amount'));
+    }
+    if (!bankName || !accountNumber || !accountName) {
+      res.status(400);
+      return next(new Error('Please provide complete bank details'));
+    }
+
+    const { newBalance } = await WalletTransaction.processWithdrawal(
+      req.user._id,
+      amt,
+      { bankName, accountNumber, accountName }
+    );
+
+    res.json({
+      message: 'Withdrawal request submitted successfully',
+      newBalance,
+    });
+  } catch (err) {
+    if (err.message.includes('Insufficient')) res.status(400);
+    next(err);
   }
+};
 
-  // Deduct from wallet
-  req.user.walletBalance -= amount;
-  await req.user.save();
+// @desc    Create escrow when buyer pays (called internally from order flow)
+export const createEscrow = async (vendorId, orderId, totalPrice) => {
+  await WalletTransaction.createEscrow(vendorId, orderId, totalPrice);
+};
 
-  // In a real app, integrate with payment provider to transfer funds to vendor's bank
-
-  res.json({
-    message: 'Withdrawal successful',
-    balance: req.user.walletBalance,
-  });
+// @desc    Release escrow when order is delivered
+export const releaseEscrow = async (vendorId, orderId) => {
+  return await WalletTransaction.releaseEscrow(vendorId, orderId);
 };

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { ShoppingCart, User, Store, LogOut, Menu, X, Search } from 'lucide-react'
+import { ShoppingCart, User, Store, LogOut, Menu, X, Search, MessageSquare, Bell } from 'lucide-react'
 import { selectIsAuth, selectCurrentUser, logout } from '../../store/authSlice'
 import { selectCartCount } from '../../store/cartSlice'
-import { authAPI } from '../../services/endpoints'
+import { authAPI, chatAPI, notificationsAPI } from '../../services/endpoints'
+import { connectSocket, getSocket, disconnectSocket } from '../../services/socket'
+import { imgUrl } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -20,6 +22,33 @@ function Navbar() {
   const isAuth = useSelector(selectIsAuth)
   const user = useSelector(selectCurrentUser)
   const cartCount = useSelector(selectCartCount)
+  const [unreadMsgs, setUnreadMsgs] = useState(0)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
+
+  // Fetch unread counts + connect socket for real-time updates
+  useEffect(() => {
+    if (!isAuth) { setUnreadMsgs(0); setUnreadNotifs(0); return }
+
+    chatAPI.getUnreadCount().then(({ data }) => setUnreadMsgs(data.unreadCount || 0)).catch(() => {})
+    notificationsAPI.getUnreadCount().then(({ data }) => setUnreadNotifs(data.unreadCount || 0)).catch(() => {})
+
+    const socket = connectSocket()
+    if (socket) {
+      socket.on('unread_update', ({ unreadCount }) => setUnreadMsgs(unreadCount))
+      socket.on('message_notification', () => setUnreadMsgs(prev => prev + 1))
+      socket.on('notif_count_update', ({ count }) => setUnreadNotifs(count))
+      socket.on('new_notification', () => setUnreadNotifs(prev => prev + 1))
+    }
+    return () => {
+      const s = getSocket()
+      if (s) {
+        s.off('unread_update')
+        s.off('message_notification')
+        s.off('notif_count_update')
+        s.off('new_notification')
+      }
+    }
+  }, [isAuth])
 
   // Handle scroll for sticky navbar effects
   useEffect(() => {
@@ -74,6 +103,7 @@ function Navbar() {
             { label: 'Features', path: '/features' },
             { label: 'Products', path: '/products' },
             { label: 'About Us', path: '/about' },
+            { label: 'Contact', path: '/contact' },
           ].map(link => (
             <Link 
               key={link.label} 
@@ -107,19 +137,55 @@ function Navbar() {
              </form>
           </div>
 
-          <Link to="/cart" className="relative p-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors group">
-            <ShoppingCart size={22} className="group-hover:scale-110 transition-transform duration-300" />
-            <AnimatePresence>
-              {cartCount > 0 && (
-                <motion.span 
-                  initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                  className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
-                >
-                  {cartCount > 9 ? '9+' : cartCount}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Link>
+          {user?.role !== 'vendor' && user?.role !== 'admin' && (
+            <Link to="/cart" className="relative p-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors group">
+              <ShoppingCart size={22} className="group-hover:scale-110 transition-transform duration-300" />
+              <AnimatePresence>
+                {cartCount > 0 && (
+                  <motion.span 
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                    className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+                  >
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          )}
+
+          {/* Messages Icon */}
+          {isAuth && (
+            <Link to={`/${user?.role === 'vendor' ? 'vendor' : user?.role === 'admin' ? 'admin' : 'buyer'}/messages`} className="relative p-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors group">
+              <MessageSquare size={21} className="group-hover:scale-110 transition-transform duration-300" />
+              <AnimatePresence>
+                {unreadMsgs > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                    className="absolute top-0 right-0 w-4 h-4 bg-brand-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+                  >
+                    {unreadMsgs > 9 ? '9+' : unreadMsgs}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          )}
+
+          {/* Notification Bell */}
+          {isAuth && (
+            <Link to={`/${user?.role === 'vendor' ? 'vendor' : user?.role === 'admin' ? 'admin' : 'buyer'}/notifs`} className="relative p-2 text-slate-600 hover:text-amber-500 hover:bg-amber-50 rounded-full transition-colors group">
+              <Bell size={21} className="group-hover:scale-110 transition-transform duration-300" />
+              <AnimatePresence>
+                {unreadNotifs > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                    className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+                  >
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          )}
 
           {/* User Auth Section */}
           <div className="hidden sm:flex items-center gap-3 ml-2 border-l border-slate-200 pl-6">
@@ -129,8 +195,11 @@ function Navbar() {
                   onClick={() => setUserMenuOpen(o => !o)}
                   className="flex items-center gap-2 focus:outline-none group"
                 >
-                  <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-brand-700 font-bold group-hover:border-brand-300 group-hover:bg-brand-50 transition-all">
-                    {user?.name?.[0]?.toUpperCase() || 'U'}
+                  <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full overflow-hidden flex items-center justify-center text-brand-700 font-bold group-hover:border-brand-300 group-hover:bg-brand-50 transition-all shrink-0">
+                    {user?.avatar
+                      ? <img src={imgUrl(user.avatar)} alt={user?.name} className="w-full h-full object-cover" />
+                      : user?.name?.[0]?.toUpperCase() || 'U'
+                    }
                   </div>
                   <div className="hidden lg:block text-left">
                     <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name?.split(' ')[0]}</p>
@@ -207,6 +276,7 @@ function Navbar() {
                 <Link to="/features" className="text-base font-semibold text-slate-800">Features</Link>
                 <Link to="/products" className="text-base font-semibold text-slate-800">Products</Link>
                 <Link to="/about" className="text-base font-semibold text-slate-800">About Us</Link>
+                <Link to="/contact" className="text-base font-semibold text-slate-800">Contact</Link>
                 {isAuth && (
                   <Link to={getDashboardLink()} className="text-base font-semibold text-brand-600">My Dashboard</Link>
                 )}

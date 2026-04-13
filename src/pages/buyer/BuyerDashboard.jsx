@@ -4,27 +4,32 @@ import { ShoppingBag, Clock, CheckCircle, AlertTriangle, Wallet } from 'lucide-r
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../../store/authSlice'
-import { ordersAPI } from '../../services/endpoints'
+import { ordersAPI, productsAPI } from '../../services/endpoints'
 import { PageLoader, SectionHeader } from '../../components/common'
 import { OrderCard } from '../../components/order'
-import { formatCurrency } from '../../utils/helpers'
+import { formatCurrency, imgUrl } from '../../utils/helpers'
 
 // ── Buyer Dashboard ──────────────────────────────────────────
 export function BuyerDashboard() {
   const user = useSelector(selectCurrentUser)
   const [orders, setOrders]   = useState([])
+  const [recommended, setRecommended] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     ordersAPI.myOrders()
       .then(({ data }) => setOrders(data.orders || data || []))
-      .catch(() => {})
+      .catch(() => setOrders([]))
       .finally(() => setLoading(false))
+
+    productsAPI.getAll({ limit: 4 })
+      .then(({ data }) => setRecommended((data.products || data.data || []).slice(0, 4)))
+      .catch(() => {})
   }, [])
 
-  const total     = orders.reduce((s, o) => s + o.totalAmount, 0)
+  const total     = orders.reduce((s, o) => s + (parseFloat(o.totalAmount) || 0), 0)
   const pending   = orders.filter(o => ['pending','paid','processing','shipped'].includes(o.status)).length
-  const completed = orders.filter(o => o.status === 'completed').length
+  const completed = orders.filter(o => ['completed','delivered'].includes(o.status)).length
   const disputed  = orders.filter(o => o.status === 'disputed').length
 
   const STATS = [
@@ -144,21 +149,21 @@ export function BuyerDashboard() {
             <h2 className="text-xl font-display font-bold text-slate-900 tracking-tight">Recommended</h2>
           </div>
           <div className="space-y-5">
-            {[
-              { id: 1, name: 'Premium Wireless Headphones', price: '45,000', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=200' },
-              { id: 2, name: 'Minimalist Smart Watch', price: '28,500', img: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=200' },
-              { id: 3, name: 'Ergonomic Office Chair', price: '85,000', img: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&q=80&w=200' }
-            ].map(p => (
-              <Link key={p.id} to={`/products`} className="flex items-center gap-4 group p-2 -mx-2 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                  <img src={p.img} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-600 transition-colors">{p.name}</h3>
-                  <p className="text-sm font-bold text-slate-500 mt-1">₦{p.price}</p>
-                </div>
-              </Link>
-            ))}
+            {recommended.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">No products yet</p>
+            ) : (
+              recommended.map(p => (
+                <Link key={p._id} to={`/products/${p._id}`} className="flex items-center gap-4 group p-2 -mx-2 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                    <img src={imgUrl(p.images?.[0])} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-600 transition-colors">{p.name}</h3>
+                    <p className="text-sm font-bold text-slate-500 mt-1">{formatCurrency(p.price)}</p>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
           <Link to="/products" className="block w-full text-center mt-6 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:border-brand-600 hover:text-brand-600 transition-colors">
             Explore More
