@@ -44,8 +44,8 @@ const FAQS = [
 
 const CONTACT_INFO = [
   { icon: Mail, label: 'Email Us', value: 'support@tradehub.com', href: 'mailto:support@tradehub.com' },
-  { icon: Phone, label: 'Call Us', value: '+234 801 234 5678', href: 'tel:+2348012345678' },
-  { icon: MapPin, label: 'Visit Us', value: 'Lagos, Nigeria', href: '#' },
+  { icon: Phone, label: 'Call Us', value: '+234 911 794 2751', href: 'tel:+2349117942751' },
+  { icon: MapPin, label: 'Visit Us', value: 'Ilorin, Kwara State, Nigeria', href: '#' },
   { icon: Clock, label: 'Working Hours', value: 'Mon - Fri, 9am - 6pm WAT', href: '#' },
 ]
 

@@ -26,31 +26,42 @@ function Checkout() {
     setLoading(true)
     try {
       // 1. Create order
+      const vendorId = items[0]?.vendorId?._id || items[0]?.vendorId
       const orderPayload = {
-        items: items.map(i => ({ productId: i._id, vendorId: i.vendorId?._id || i.vendorId, quantity: i.quantity })),
-        deliveryAddress: {
-          street:  formData.street,
-          city:    formData.city,
-          state:   formData.state,
+        orderItems: items.map(i => ({
+          product: i._id,
+          name: i.name,
+          qty: i.quantity,
+          image: i.images?.[0] || '',
+          price: i.price,
+        })),
+        vendorId,
+        shippingAddress: {
+          address: formData.street,
+          city: formData.city,
+          postalCode: formData.postalCode || '100001',
           country: 'Nigeria',
-        }
+        },
+        paymentMethod: 'Paystack',
+        itemsPrice:    total,
+        taxPrice:      0,
+        shippingPrice: 0,
+        totalPrice:    total,
       }
+
       const { data: orderData } = await ordersAPI.create(orderPayload)
-      const orderId = orderData.order?._id || orderData._id
+      const orderId = orderData._id || orderData.id
 
-      // 2. Initialize Paystack payment
-      const { data: payData } = await paymentsAPI.initialize({
-        orderId,
-        email:  formData.email,
-        amount: total,
-      })
+      // 2. Initialize Paystack transaction
+      const { data: payData } = await paymentsAPI.initialize({ orderId })
 
-      // 3. Redirect to Paystack checkout
-      if (payData.data?.authorization_url) {
+      // 3. Redirect buyer to Paystack hosted payment page
+      const authUrl = payData.authorization_url
+      if (authUrl) {
         dispatch(clearCart())
-        window.location.href = payData.data.authorization_url
+        window.location.href = authUrl
       } else {
-        throw new Error('Payment initialization failed')
+        throw new Error('No payment URL received')
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Checkout failed. Please try again.')
@@ -58,6 +69,7 @@ function Checkout() {
       setLoading(false)
     }
   }
+
 
   if (items.length === 0) {
     navigate('/cart')

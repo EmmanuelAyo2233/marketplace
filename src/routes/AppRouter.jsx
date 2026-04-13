@@ -17,6 +17,7 @@ import ProductDetail  from '../pages/public/ProductDetail'
 import VendorStore    from '../pages/public/VendorStore'
 import Cart           from '../pages/public/Cart'
 import Checkout       from '../pages/public/Checkout'
+import CheckoutVerify from '../pages/public/CheckoutVerify'
 import ContactUs      from '../pages/public/ContactUs'
 
 // Auth pages
@@ -76,7 +77,8 @@ function AppRouter() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/store/:slug" element={<VendorStore />} />
           <Route path="/cart"       element={<Cart />} />
-          <Route path="/checkout"   element={<ProtectedRoute roles={['buyer']}><Checkout /></ProtectedRoute>} />
+          <Route path="/checkout"        element={<ProtectedRoute roles={['buyer']}><Checkout /></ProtectedRoute>} />
+          <Route path="/checkout/verify" element={<ProtectedRoute roles={['buyer']}><CheckoutVerify /></ProtectedRoute>} />
         </Route>
 
         {/* Auth */}

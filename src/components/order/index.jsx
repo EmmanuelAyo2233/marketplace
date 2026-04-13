@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight, Package, Truck, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
-import { formatCurrency, formatDate, ORDER_STATUS_CONFIG } from '../../utils/helpers'
+import { formatCurrency, formatDate, ORDER_STATUS_CONFIG, imgUrl } from '../../utils/helpers'
 import { OrderStatusBadge } from '../common'
 
 // ─── Order Card ───────────────────────────────────────────────
@@ -11,7 +11,7 @@ export function OrderCard({ order, linkBase = '/buyer/orders' }) {
       {/* First item image */}
       <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
         <img
-          src={order.items?.[0]?.imageUrl || 'https://placehold.co/64x64/e2e8f0/94a3b8?text=•'}
+          src={imgUrl(order.firstItemImage || order.orderItems?.[0]?.image || order.items?.[0]?.image || order.items?.[0]?.imageUrl)}
           alt=""
           className="w-full h-full object-cover"
         />
@@ -22,10 +22,10 @@ export function OrderCard({ order, linkBase = '/buyer/orders' }) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-semibold text-slate-800 truncate">
-              Order #{order._id.slice(-8).toUpperCase()}
+              Order #{String(order._id).slice(-8).toUpperCase()}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              {formatDate(order.createdAt)} · {order.items?.length} item{order.items?.length !== 1 ? 's' : ''}
+              {formatDate(order.createdAt)} · {order.totalItems || order.orderItems?.length || order.items?.length || 0} item{(order.totalItems || order.orderItems?.length || order.items?.length || 0) !== 1 ? 's' : ''}
             </p>
           </div>
           <OrderStatusBadge status={order.status} />

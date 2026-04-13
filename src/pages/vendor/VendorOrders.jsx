@@ -81,7 +81,7 @@ function VendorOrders() {
 
                 <div className="col-span-4">
                   <p className="text-sm font-semibold text-slate-800">
-                    #{order._id.slice(-8).toUpperCase()}
+                    #{String(order._id).slice(-8).toUpperCase()}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {order.items?.length} item{order.items?.length !== 1 ? 's' : ''}
@@ -119,7 +119,7 @@ function VendorOrders() {
 
       {/* Order detail modal */}
       <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)}
-        title={`Order #${selectedOrder?._id?.slice(-8).toUpperCase()}`} size="lg">
+        title={`Order #${String(selectedOrder?._id || '').slice(-8).toUpperCase()}`} size="lg">
         {selectedOrder && (
           <div className="space-y-5">
             {/* Items */}

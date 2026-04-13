@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import emmaImg from '../../assets/team/emma.jpg'
 import zainabImg from '../../assets/team/misszainab.png'
+import ahmadImg from '../../assets/team/hon ahmad.jpeg'
 
 const TEAM = [
   {
@@ -23,10 +24,10 @@ const TEAM = [
     socials: { linkedin: '#', instagram: '#' }
   },
   {
-    name: 'Kojo Mensah',
-    role: 'DevOps Engineer',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
-    bio: 'Manages cloud infrastructure, CI/CD pipelines, and ensures 99.9% uptime.',
+    name: 'Adebara ahmad',
+    role: 'Frontend Developer',
+    image: ahmadImg,
+    bio: 'Builds responsive, intuitive user interfaces and ensures a seamless experience across all devices.',
     socials: { linkedin: '#', github: '#' }
   }
 ]

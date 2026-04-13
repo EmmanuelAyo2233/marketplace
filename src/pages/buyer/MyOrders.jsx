@@ -68,13 +68,13 @@ export function OrderDetail() {
   if (loading) return <PageLoader />
   if (!order) return <div className="text-center py-16 text-slate-500">Order not found</div>
 
-  const canConfirm  = order.status === 'shipped'
-  const canDispute  = ['paid','processing','shipped'].includes(order.status)
+  const canConfirm  = order.status === 'shipped' || order.isShipped
+  const canDispute  = !order.isDelivered
 
   return (
     <div>
       <SectionHeader
-        title={`Order #${order._id.slice(-8).toUpperCase()}`}
+        title={`Order #${String(order._id).slice(-8).toUpperCase()}`}
         subtitle={`Placed on ${formatDate(order.createdAt)}`}
         action={<OrderStatusBadge status={order.status} />}
       />
@@ -92,16 +92,16 @@ export function OrderDetail() {
           <div className="card p-5">
             <h3 className="font-semibold text-slate-800 mb-4">Items Ordered</h3>
             <div className="space-y-4">
-              {order.items?.map((item, i) => (
+              {(order.items || order.orderItems)?.map((item, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
-                    <img src={imgUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={imgUrl(item.image || item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-800">{item.name}</p>
-                    <p className="text-xs text-slate-500">Qty: {item.quantity} × {formatCurrency(item.unitPrice)}</p>
+                    <p className="text-xs text-slate-500">Qty: {item.qty || item.quantity} × {formatCurrency(item.price || item.unitPrice)}</p>
                   </div>
-                  <span className="font-bold text-slate-800">{formatCurrency(item.subtotal)}</span>
+                  <span className="font-bold text-slate-800">{formatCurrency((item.qty || item.quantity) * (item.price || item.unitPrice))}</span>
                 </div>
               ))}
             </div>
@@ -112,14 +112,14 @@ export function OrderDetail() {
           </div>
 
           {/* Delivery address */}
-          {order.deliveryAddress && (
+          {(order.deliveryAddress || order.shippingAddress) && (
             <div className="card p-5">
               <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <MapPin size={16} className="text-brand-600" /> Delivery Address
               </h3>
               <p className="text-sm text-slate-600">
-                {order.deliveryAddress.street}, {order.deliveryAddress.city},<br />
-                {order.deliveryAddress.state}, {order.deliveryAddress.country}
+                {order.deliveryAddress?.street || order.shippingAddress}, {order.deliveryAddress?.city || order.shippingCity},<br />
+                {order.deliveryAddress?.state || order.shippingPostalCode}, {order.deliveryAddress?.country || order.shippingCountry}
               </p>
             </div>
           )}
@@ -147,7 +147,7 @@ export function OrderDetail() {
           <div className="card p-5">
             <h3 className="font-semibold text-slate-800 mb-3">Order Info</h3>
             <dl className="space-y-2 text-sm">
-              <div className="flex justify-between"><dt className="text-slate-500">Order ID</dt><dd className="font-mono text-xs">{order._id.slice(-8)}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">Order ID</dt><dd className="font-mono text-xs">{String(order._id).slice(-8)}</dd></div>
               <div className="flex justify-between"><dt className="text-slate-500">Placed</dt><dd>{formatDateTime(order.createdAt)}</dd></div>
               {order.shippedAt && <div className="flex justify-between"><dt className="text-slate-500">Shipped</dt><dd>{formatDateTime(order.shippedAt)}</dd></div>}
               {order.confirmedAt && <div className="flex justify-between"><dt className="text-slate-500">Confirmed</dt><dd>{formatDateTime(order.confirmedAt)}</dd></div>}

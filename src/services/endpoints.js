@@ -51,8 +51,8 @@ export const ordersAPI = {
 
 // PAYMENTS
 export const paymentsAPI = {
-  initialize: async (data) => ({ data: { authorization_url: 'https://checkout.paystack.com/mock' } }),
-  verify:     async (ref)  => ({ data: { success: true } }),
+  initialize: async (data) => api.post('/payments/initialize', data),
+  verify:     async (ref)  => api.get(`/payments/verify/${ref}`),
 }
 
 // WALLETS
@@ -63,10 +63,11 @@ export const walletAPI = {
 
 // DISPUTES
 export const disputesAPI = {
-  raise:   async (data)  => ({ data: { dispute: { _id: 'disp_1' } } }),
-  getAll:  async ()      => ({ data: { disputes: [] } }),
-  getOne:  async (id)    => ({ data: { dispute: { _id: 'disp_1' } } }),
-  resolve: async (id, d) => ({ data: { dispute: { status: 'resolved' } } }),
+  raise:      async (data)  => api.post('/disputes', data),
+  getAll:     async ()      => api.get('/disputes'),
+  getMyDisputes: async ()   => api.get('/disputes/me'),
+  getOne:     async (id)    => api.get(`/disputes/${id}`),
+  resolve:    async (id, d) => api.patch(`/disputes/${id}/resolve`, d),
 }
 
 // ADMIN

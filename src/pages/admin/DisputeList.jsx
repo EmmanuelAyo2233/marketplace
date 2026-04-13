@@ -142,7 +142,7 @@ export function DisputeDetail() {
       </button>
 
       <SectionHeader
-        title={`Dispute #${dispute._id.slice(-8).toUpperCase()}`}
+        title={`Dispute #${String(dispute._id).slice(-8).toUpperCase()}`}
         subtitle={`Raised on ${formatDateTime(dispute.createdAt)}`}
         action={<span className={cfg.class + ' flex items-center gap-1.5'}><StatusIcon size={12} /> {cfg.label}</span>}
       />

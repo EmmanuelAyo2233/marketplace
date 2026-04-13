@@ -3,14 +3,23 @@ export const formatCurrency = (amount, currency = 'NGN') =>
   new Intl.NumberFormat('en-NG', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount)
 
 // Date formatters
-export const formatDate = (date) =>
-  new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date))
+export const formatDate = (date) => {
+  if (!date) return 'N/A'
+  const d = new Date(date)
+  return isNaN(d.valueOf()) ? 'N/A' : new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }).format(d)
+}
 
-export const formatDateTime = (date) =>
-  new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(date))
+export const formatDateTime = (date) => {
+  if (!date) return 'N/A'
+  const d = new Date(date)
+  return isNaN(d.valueOf()) ? 'N/A' : new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d)
+}
 
 export const timeAgo = (date) => {
-  const seconds = Math.floor((Date.now() - new Date(date)) / 1000)
+  if (!date) return 'N/A'
+  const d = new Date(date)
+  if (isNaN(d.valueOf())) return 'N/A'
+  const seconds = Math.floor((Date.now() - d) / 1000)
   if (seconds < 60)   return `${seconds}s ago`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400)return `${Math.floor(seconds / 3600)}h ago`
