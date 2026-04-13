@@ -1,9 +1,10 @@
 import { io } from 'socket.io-client'
 import { store } from '../store'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://trade-hub-backend.onrender.com'
+const rawEnv = import.meta.env.VITE_API_URL;
+const API_BASE = (rawEnv && rawEnv.startsWith('http')) ? rawEnv : 'https://trade-hub-backend.onrender.com';
 // Remove trailing slash if any for the socket connection
-const SOCKET_URL = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE
+const SOCKET_URL = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
 
 let socket = null
 

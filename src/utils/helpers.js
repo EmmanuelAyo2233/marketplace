@@ -53,8 +53,9 @@ export const imgUrl = (url) => {
   if (!url) return 'https://placehold.co/400x400/e2e8f0/94a3b8?text=No+Image'
   if (url.startsWith('http')) return url
   
-  const API_BASE = import.meta.env.VITE_API_URL || 'https://trade-hub-backend.onrender.com'
-  const baseURL = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE
+  const rawEnv = import.meta.env.VITE_API_URL;
+  const API_BASE = (rawEnv && rawEnv.startsWith('http')) ? rawEnv : 'https://trade-hub-backend.onrender.com';
+  const baseURL = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
   
   const normalizedUrl = url.startsWith('/') ? url : `/${url}`
   return `${baseURL}${normalizedUrl}`

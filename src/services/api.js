@@ -2,9 +2,12 @@ import axios from 'axios'
 import { store } from '../store'
 import { logout, setTokens } from '../store/authSlice'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://trade-hub-backend.onrender.com'
+const rawEnv = import.meta.env.VITE_API_URL;
+// Ensure we use the production backend if the local env variable is empty or is a relative path (like '/api')
+const API_BASE = (rawEnv && rawEnv.startsWith('http')) ? rawEnv : 'https://trade-hub-backend.onrender.com';
+
 // Ensure there's no trailing slash on API_BASE, and append /api
-const BASE_URL = API_BASE.endsWith('/') ? `${API_BASE}api` : `${API_BASE}/api`
+const BASE_URL = API_BASE.endsWith('/') ? `${API_BASE}api` : `${API_BASE}/api`;
 
 const api = axios.create({
   baseURL: BASE_URL,
