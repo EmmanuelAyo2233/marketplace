@@ -53,7 +53,10 @@ function Checkout() {
       const orderId = orderData._id || orderData.id
 
       // 2. Initialize Paystack transaction
-      const { data: payData } = await paymentsAPI.initialize({ orderId })
+      const { data: payData } = await paymentsAPI.initialize({ 
+        orderId, 
+        callbackUrl: `${window.location.origin}/checkout/verify` 
+      })
 
       // 3. Redirect buyer to Paystack hosted payment page
       const authUrl = payData.authorization_url
