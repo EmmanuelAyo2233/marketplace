@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion'
-import { User, Lock, Bell, CreditCard, Shield, ShieldCheck, ShieldAlert, ArrowRight, ArrowLeft, Upload, FileText, CheckCircle2, Clock, AlertTriangle, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, Lock, Bell, CreditCard, Shield, ShieldCheck, ShieldAlert, ArrowRight, ArrowLeft, Upload, FileText, CheckCircle2, Clock, AlertTriangle, X } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectCurrentUser, updateUser } from '../../store/authSlice'
 import { authAPI, vendorsAPI } from '../../services/endpoints'
@@ -391,7 +391,7 @@ function Settings() {
                         
                         <span className="text-slate-400">Category:</span>
                         <span className="font-semibold text-slate-800">{user.businessCategory}</span>
-
+                        
                         <span className="text-slate-400">CAC Number:</span>
                         <span className="font-mono text-slate-800 font-semibold">{user.cacNumber || 'N/A'}</span>
                       </div>
@@ -648,4 +648,5 @@ function Settings() {
     </motion.div>
   )
 }
-export default Settings;
+
+export default Settings
