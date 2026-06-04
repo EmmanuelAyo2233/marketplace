@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   LayoutDashboard, Package, ShoppingBag, Wallet,
-  LogOut, Menu, X, Store, ChevronRight, User, Bell, Heart, MessageSquare, Settings, BarChart2, PlusCircle, Search, Compass
+  LogOut, Menu, X, Store, ChevronRight, User, Bell, Heart, MessageSquare, Settings, BarChart2, PlusCircle, Search, Compass, ShieldCheck
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { selectCurrentUser, logout, updateUser } from '../../store/authSlice'
@@ -33,6 +33,7 @@ const NAV = {
   ],
   admin: [
     { to: '/admin',           icon: LayoutDashboard, label: 'Overview'         },
+    { to: '/admin/kyc',       icon: ShieldCheck,     label: 'KYC Requests'     },
     { to: '/admin/vendors',   icon: Store,           label: 'Vendors'          },
     { to: '/admin/buyers',    icon: Heart,           label: 'Buyers'           },
     { to: '/admin/users',     icon: User,            label: 'All Users'        },
