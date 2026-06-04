@@ -281,9 +281,16 @@ export default function ProductDetail() {
                   <Store size={19} strokeWidth={2.5} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate group-hover/vendor:text-brand-600 transition-colors">
-                    {product.vendorId.storeName}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-slate-800 truncate group-hover/vendor:text-brand-600 transition-colors">
+                      {product.vendorId.storeName}
+                    </p>
+                    {product.vendorId?.isVerified && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                        ✓ Verified Seller
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500">View store →</p>
                 </div>
               </Link>

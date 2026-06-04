@@ -11,20 +11,22 @@ import toast from 'react-hot-toast'
 
 // ── Approval Gate ─────────────────────────────────────────────
 function ApprovalPending() {
+  const navigate = useNavigate()
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-      <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mb-5">
-        <Clock size={36} className="text-amber-500" />
+      <div className="w-20 h-20 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mb-5 text-red-500 shadow-md">
+        <Lock size={36} />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-3">Account Pending Approval</h2>
-      <p className="text-slate-500 max-w-sm leading-relaxed mb-6">
-        Your vendor account is currently under review by our admin team. You will
-        be able to upload products once your account is approved.
-        This typically takes less than 24 hours.
+      <h2 className="text-2xl font-bold text-slate-900 mb-3">Verification Required</h2>
+      <p className="text-slate-600 max-w-md leading-relaxed mb-6 font-semibold">
+        Your account must be verified before you can upload or manage products.
       </p>
-      <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm font-semibold">
-        <Lock size={14} /> Product upload is locked until approval
-      </div>
+      <button 
+        onClick={() => navigate('/vendor/settings?tab=kyc')}
+        className="btn-primary bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg"
+      >
+        Go to Verification Center
+      </button>
     </div>
   )
 }
@@ -35,8 +37,8 @@ export function AddProduct() {
   const user      = useSelector(selectCurrentUser)
   const [loading, setLoading] = useState(false)
 
-  // Block unapproved vendors
-  if (!user?.isApproved) return <ApprovalPending />
+  // Block unverified vendors
+  if (!user?.isVerified) return <ApprovalPending />
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -90,8 +92,8 @@ export function EditProduct() {
       .finally(() => setFetching(false))
   }, [id])
 
-  // Block unapproved vendors
-  if (!user?.isApproved) return <ApprovalPending />
+  // Block unverified vendors
+  if (!user?.isVerified) return <ApprovalPending />
 
   const onSubmit = async (data) => {
     setLoading(true)

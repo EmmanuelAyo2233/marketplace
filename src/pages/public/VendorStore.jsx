@@ -84,9 +84,16 @@ function VendorStore() {
 
             {/* Info */}
             <div className="text-center sm:text-left pb-1 flex-1">
-              <h1 className="font-display font-bold text-2xl md:text-3xl lg:text-4xl text-white tracking-tight">
-                {vendor.storeName}
-              </h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2 sm:mb-1 justify-center sm:justify-start">
+                <h1 className="font-display font-bold text-2xl md:text-3xl lg:text-4xl text-white tracking-tight">
+                  {vendor.storeName}
+                </h1>
+                {vendor.isVerified && (
+                  <span className="inline-flex items-center gap-1 bg-emerald-500/20 backdrop-blur-sm text-emerald-300 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30 w-fit shrink-0">
+                    ✓ Verified Seller
+                  </span>
+                )}
+              </div>
               {vendor.storeDescription && (
                 <p className="text-slate-300 text-sm md:text-base mt-2 max-w-xl leading-relaxed">
                   {vendor.storeDescription}

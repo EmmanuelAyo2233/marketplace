@@ -34,9 +34,11 @@ export const productsAPI = {
 
 // VENDORS
 export const vendorsAPI = {
-  getStore:  async (slug)  => api.get(`/vendors/${slug}`),
-  updateMe:  async (data)  => api.put('/vendors/me', data),
-  getStats:  async ()      => api.get('/vendors/me/stats'),
+  getStore:     async (slug)  => api.get(`/vendors/${slug}`),
+  updateMe:     async (data)  => api.put('/vendors/me', data),
+  getStats:     async ()      => api.get('/vendors/me/stats'),
+  submitKYC:    async (data)  => api.post('/vendors/kyc/submit', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getKYCStatus: async ()      => api.get('/vendors/kyc/status'),
 }
 
 // ORDERS
@@ -79,6 +81,7 @@ export const adminAPI = {
   getBuyers: () => api.get('/admin/buyers'),
   toggleUserStatus: (id, isActive) => api.patch(`/admin/users/${id}/status`, { isActive }),
   toggleVendorApproval: (id, isApproved) => api.patch(`/admin/vendors/${id}/approval`, { isApproved }),
+  reviewVendorKYC: (id, action, rejectionReason) => api.patch(`/admin/vendors/${id}/kyc-review`, { action, rejectionReason }),
 }
 
 // WISHLIST

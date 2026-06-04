@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, ShoppingBag, Wallet, TrendingUp, Plus, AlertTriangle, Clock } from 'lucide-react'
+import { Package, ShoppingBag, Wallet, TrendingUp, Plus, AlertTriangle, Clock, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../../store/authSlice'
@@ -96,24 +96,63 @@ function VendorDashboard() {
         </div>
       </motion.div>
 
-      {/* Pending Approval Banner */}
-      {!user?.isApproved && (
+      {/* KYC Status Banners */}
+      {!user?.isVerified && (
         <motion.div
           variants={itemVariants}
-          className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-5"
+          className="space-y-4"
         >
-          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Clock size={20} className="text-amber-600" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-amber-900 mb-1">Account Pending Approval</p>
-            <p className="text-sm text-amber-700 leading-relaxed">
-              Your vendor account is under review by our admin team. You will be able
-              to upload products and receive orders once approved. This typically
-              takes less than 24 hours.
-            </p>
-          </div>
-          <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          {/* Unsubmitted KYC */}
+          {(user?.verificationStatus === 'unsubmitted' || !user?.verificationStatus) && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                <Shield size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-blue-900 text-base mb-1">Complete KYC Verification</p>
+                <p className="text-sm text-blue-700 leading-relaxed">
+                  Your vendor account is currently unverified. To start uploading products and selling on TradeHub, please submit your KYC verification documents.
+                </p>
+              </div>
+              <Link to="/vendor/settings?tab=kyc" className="btn-primary shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md py-2.5 px-5">
+                Verify Now
+              </Link>
+            </div>
+          )}
+
+          {/* Pending KYC Review */}
+          {user?.verificationStatus === 'pending' && (
+            <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600 animate-pulse">
+                <Clock size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-amber-900 text-base mb-1">KYC Review in Progress</p>
+                <p className="text-sm text-amber-700 leading-relaxed">
+                  Your identity documents and business details are currently being reviewed by our administrators. This usually takes under 24 hours. You'll be notified immediately upon approval.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Rejected KYC */}
+          {user?.verificationStatus === 'rejected' && (
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 text-red-600">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-red-900 text-base mb-1">KYC Verification Rejected</p>
+                <p className="text-sm text-red-700 leading-relaxed font-semibold">
+                  Reason: {user?.rejectionReason || 'Documents uploaded were blurry or could not be read.'}
+                </p>
+                <p className="text-xs text-red-600 mt-1">Please review your submission details and upload clear copies of your ID.</p>
+              </div>
+              <Link to="/vendor/settings?tab=kyc" className="btn-primary shrink-0 bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md py-2.5 px-5 self-center sm:self-start">
+                Update & Resubmit
+              </Link>
+            </div>
+          )}
         </motion.div>
       )}
 

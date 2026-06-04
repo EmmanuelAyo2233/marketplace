@@ -80,9 +80,16 @@ function ProductCard({ product, showCompare, onCompare, isCompared }) {
 
         {/* Vendor */}
         {product.vendorId?.storeName && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-            <Store size={12} className="text-slate-400" />
-            <span className="truncate">{product.vendorId.storeName}</span>
+          <div className="flex items-center flex-wrap gap-1.5 text-xs text-slate-500 mt-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Store size={12} className="text-slate-400" />
+              <span className="truncate">{product.vendorId.storeName}</span>
+            </div>
+            {product.vendorId?.isVerified && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100 shrink-0">
+                ✓ Verified Seller
+              </span>
+            )}
           </div>
         )}
 
