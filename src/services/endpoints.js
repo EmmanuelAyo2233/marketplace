@@ -2,44 +2,12 @@ import api from './api'
 
 // AUTH
 export const authAPI = {
-  register: async (data) => {
-    // Mock registration
-    return new Promise(resolve => setTimeout(() => resolve({
-      data: {
-        user: { 
-          id: 'mock_user_1', 
-          name: data.name || 'Mock User', 
-          email: data.email, 
-          role: data.role || 'buyer',
-          storeName: data.storeName || ''
-        },
-        accessToken: 'mock_token_123'
-      }
-    }), 800));
-  },
-  login: async (data) => {
-    // Mock login
-    return new Promise(resolve => setTimeout(() => resolve({
-      data: {
-        user: { 
-          id: 'mock_user_1', 
-          name: 'Demo User', 
-          email: data.email, 
-          role: data.email.includes('vendor') ? 'vendor' : 'buyer',
-          storeName: data.email.includes('vendor') ? 'Demo Store' : ''
-        },
-        accessToken: 'mock_token_123'
-      }
-    }), 800));
-  },
-  logout:    ()     => Promise.resolve(),
-  refresh:   ()     => Promise.resolve({ data: { accessToken: 'mock_token_123' } }),
-  me:        ()     => Promise.resolve({ data: { id: 'mock_user_1', name: 'Demo User' } }),
-  updateProfile: (data) => {
-    return new Promise(resolve => setTimeout(() => resolve({
-      data: { id: 'mock_user_1', name: 'Demo User Updated' }
-    }), 800));
-  },
+  register:      (data) => api.post('/auth/register', data),
+  login:         (data) => api.post('/auth/login', data),
+  logout:        ()     => api.post('/auth/logout'),
+  refresh:       ()     => api.post('/auth/refresh'),
+  me:            ()     => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/profile', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
 
 // MOCK DATA FACTORIES
