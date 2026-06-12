@@ -39,6 +39,7 @@ const NAV = {
     { to: '/admin/users',     icon: User,            label: 'All Users'        },
     { to: '/admin/wallet',    icon: Wallet,          label: 'Platform Wallet'  },
     { to: '/admin/disputes',  icon: Bell,            label: 'Disputes'         },
+    { to: '/admin/settings',  icon: Settings,        label: 'Settings'         },
   ],
 }
 
@@ -107,6 +108,19 @@ function DashboardLayout({ role }) {
     fetchProfile()
   }, [dispatch])
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.profile-dropdown-container')) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const handleLogout = async () => {
     try { await authAPI.logout() } catch {}
     dispatch(logout())
@@ -133,7 +147,7 @@ function DashboardLayout({ role }) {
       </nav>
 
       {/* ── Bottom Profile Drop-up ── */}
-      <div className="relative mt-auto border-t border-slate-800 p-3">
+      <div className="relative mt-auto border-t border-slate-800 p-3 profile-dropdown-container">
         <AnimatePresence>
           {profileOpen && (
             <motion.div 
@@ -147,13 +161,7 @@ function DashboardLayout({ role }) {
                 <p className="text-sm font-bold truncate text-slate-900">{user?.name}</p>
                 <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
               </div>
-              <Link to={`/${role}/settings`} onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
-                <User size={16} className="text-slate-400" /> Profile
-              </Link>
-              <Link to={`/${role}/settings`} onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">
-                <Settings size={16} className="text-slate-400" /> Settings
-              </Link>
-              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors mt-1">
+              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors">
                 <LogOut size={16} /> Logout
               </button>
             </motion.div>

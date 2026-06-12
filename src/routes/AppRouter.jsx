@@ -123,6 +123,7 @@ function AppRouter() {
           <Route path="disputes/:id"  element={<DisputeDetail />} />
           <Route path="notifs"        element={<Notifications />} />
           <Route path="kyc"           element={<AdminKYC />} />
+          <Route path="settings"      element={<Settings />} />
         </Route>
 
         {/* Fallback */}
