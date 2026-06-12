@@ -54,6 +54,7 @@ import AdminVendors   from '../pages/admin/AdminVendors'
 import AdminBuyers    from '../pages/admin/AdminBuyers'
 import AdminWallet    from '../pages/admin/AdminWallet'
 import AdminKYC       from '../pages/admin/AdminKYC'
+import AdminReviews   from '../pages/admin/AdminReviews'
 
 function ProtectedRoute({ children, roles }) {
   const isAuth = useSelector(selectIsAuth)
@@ -124,6 +125,7 @@ function AppRouter() {
           <Route path="notifs"        element={<Notifications />} />
           <Route path="kyc"           element={<AdminKYC />} />
           <Route path="settings"      element={<Settings />} />
+          <Route path="reviews"       element={<AdminReviews />} />
         </Route>
 
         {/* Fallback */}

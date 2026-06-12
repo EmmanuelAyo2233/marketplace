@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { ShoppingBag, MapPin } from 'lucide-react'
-import { ordersAPI, disputesAPI } from '../../services/endpoints'
+import { ShoppingBag, MapPin, Star } from 'lucide-react'
+import { ordersAPI, disputesAPI, reviewsAPI } from '../../services/endpoints'
 import { PageLoader, EmptyState, SectionHeader, OrderStatusBadge, Modal } from '../../components/common'
 import { OrderCard, OrderTimeline, DeliveryConfirmBtn } from '../../components/order'
 import { formatCurrency, formatDate, formatDateTime, imgUrl } from '../../utils/helpers'
@@ -41,6 +41,36 @@ export function OrderDetail() {
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeLoading, setDisputeLoading] = useState(false)
+
+  // Review states
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [reviewProductId, setReviewProductId] = useState(null)
+  const [reviewProductName, setReviewProductName] = useState('')
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+
+  const handleReviewSubmit = async () => {
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      return toast.error('Please select a rating between 1 and 5 stars')
+    }
+    setReviewSubmitting(true)
+    try {
+      await reviewsAPI.create({
+        productId: reviewProductId,
+        orderId: id,
+        rating: reviewRating,
+        comment: reviewComment
+      })
+      toast.success('Review submitted successfully!')
+      setReviewModalOpen(false)
+      fetchOrder()
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to submit review')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   const fetchOrder = async () => {
     setLoading(true)
@@ -93,15 +123,43 @@ export function OrderDetail() {
             <h3 className="font-semibold text-slate-800 mb-4">Items Ordered</h3>
             <div className="space-y-4">
               {(order.items || order.orderItems)?.map((item, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
-                    <img src={imgUrl(item.image || item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4 last:border-b-0 last:pb-0">
+                  <div className="flex gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
+                      <img src={imgUrl(item.image || item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                      <p className="text-xs text-slate-500">Qty: {item.qty || item.quantity} × {formatCurrency(item.price || item.unitPrice)}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-800">{item.name}</p>
-                    <p className="text-xs text-slate-500">Qty: {item.qty || item.quantity} × {formatCurrency(item.price || item.unitPrice)}</p>
+                  <div className="flex items-center gap-4 justify-between sm:justify-end">
+                    <span className="font-bold text-slate-800">{formatCurrency((item.qty || item.quantity) * (item.price || item.unitPrice))}</span>
+                    
+                    {/* Review Button/Badge */}
+                    {(order.status === 'delivered' || order.isDelivered) && (
+                      <div className="ml-2">
+                        {item.reviewId ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-100">
+                            ★ {item.reviewRating || ''} Reviewed
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => {
+                              setReviewProductId(item.productId || item.product);
+                              setReviewProductName(item.name);
+                              setReviewRating(5);
+                              setReviewComment('');
+                              setReviewModalOpen(true);
+                            }}
+                            className="bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold px-3 py-1.5 rounded-xl transition-colors"
+                          >
+                            Review Product
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <span className="font-bold text-slate-800">{formatCurrency((item.qty || item.quantity) * (item.price || item.unitPrice))}</span>
                 </div>
               ))}
             </div>
@@ -167,6 +225,57 @@ export function OrderDetail() {
           <button onClick={handleDispute} disabled={disputeLoading} className="btn-danger">
             {disputeLoading ? 'Submitting…' : 'Submit Dispute'}
           </button>
+        </div>
+      </Modal>
+
+      {/* Review Modal */}
+      <Modal open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} title={`Review Product`} size="sm">
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Product Name</p>
+            <p className="text-sm font-bold text-slate-800">{reviewProductName}</p>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Rating</p>
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setReviewRating(star)}
+                  className="p-1 hover:scale-110 transition-transform outline-none"
+                  type="button"
+                >
+                  <Star
+                    size={28}
+                    className={star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Comments (Optional)</p>
+            <textarea
+              rows={4}
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="What did you think of the product? Share your experience…"
+              className="input resize-none text-sm font-medium"
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+            <button onClick={() => setReviewModalOpen(false)} className="btn-secondary text-xs py-2 px-4">Cancel</button>
+            <button 
+              onClick={handleReviewSubmit} 
+              disabled={reviewSubmitting} 
+              className="btn-primary text-xs py-2 px-5 bg-brand-600 hover:bg-brand-700 text-white"
+            >
+              {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

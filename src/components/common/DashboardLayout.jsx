@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   LayoutDashboard, Package, ShoppingBag, Wallet,
-  LogOut, Menu, X, Store, ChevronRight, User, Bell, Heart, MessageSquare, Settings, BarChart2, PlusCircle, Search, Compass, ShieldCheck
+  LogOut, Menu, X, Store, ChevronRight, User, Bell, Heart, MessageSquare, Settings, BarChart2, PlusCircle, Search, Compass, ShieldCheck, Star
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { selectCurrentUser, logout, updateUser } from '../../store/authSlice'
@@ -39,6 +39,7 @@ const NAV = {
     { to: '/admin/users',     icon: User,            label: 'All Users'        },
     { to: '/admin/wallet',    icon: Wallet,          label: 'Platform Wallet'  },
     { to: '/admin/disputes',  icon: Bell,            label: 'Disputes'         },
+    { to: '/admin/reviews',   icon: Star,            label: 'Product Reviews'  },
     { to: '/admin/settings',  icon: Settings,        label: 'Settings'         },
   ],
 }

@@ -5,7 +5,7 @@ import {
   ShoppingCart, Store, Shield, Truck, ChevronLeft, ChevronRight,
   Plus, Minus, Heart, MessageCircle, Zap, Package, Share2, Check, Star
 } from 'lucide-react'
-import { productsAPI } from '../../services/endpoints'
+import { productsAPI, reviewsAPI } from '../../services/endpoints'
 import { addToCart } from '../../store/cartSlice'
 import { selectIsAuth, selectCurrentUser } from '../../store/authSlice'
 import { selectIsWishlisted, toggleWishlistItem, fetchWishlistIds } from '../../store/wishlistSlice'
@@ -30,6 +30,8 @@ export default function ProductDetail() {
   const [relatedProducts, setRelated] = useState([])
   const [imgLoaded, setImgLoaded]     = useState(false)
   const [addedToCart, setAddedToCart]  = useState(false)
+  const [reviews, setReviews]         = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
 
   const isWishlisted = useSelector(selectIsWishlisted(parseInt(id)))
 
@@ -63,6 +65,15 @@ export default function ProductDetail() {
     }
     fetchProduct()
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [id])
+
+  // Fetch product reviews
+  useEffect(() => {
+    setReviewsLoading(true)
+    reviewsAPI.getProductReviews(id)
+      .then(({ data }) => setReviews(data || []))
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false))
   }, [id])
 
   // Fetch related products (same category)
@@ -256,8 +267,8 @@ export default function ProductDetail() {
 
             {/* Reviews row */}
             <div className="flex items-center gap-3 mt-3">
-              <Stars rating={4.5} />
-              <span className="text-xs text-slate-500 font-medium">(128 reviews)</span>
+              <Stars rating={product.avgRating || 0} />
+              <span className="text-xs text-slate-500 font-medium">({product.numReviews || 0} review{product.numReviews !== 1 ? 's' : ''})</span>
             </div>
           </div>
 
@@ -387,6 +398,51 @@ export default function ProductDetail() {
             <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
+          </div>
+
+          {/* ── Reviews & Ratings Section ── */}
+          <div className="border-t border-slate-100 pt-6 mt-6">
+            <h3 className="font-display font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
+              Reviews & Ratings <span className="text-xs font-semibold text-slate-400 font-sans">({reviews.length})</span>
+            </h3>
+
+            {reviewsLoading ? (
+              <p className="text-xs text-slate-400">Loading reviews...</p>
+            ) : reviews.length === 0 ? (
+              <div className="bg-slate-50 rounded-2xl p-6 text-center border border-slate-100/50">
+                <Star size={20} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-600">No reviews yet</p>
+                <p className="text-[11px] text-slate-400 mt-1">Be the first to review this product after purchase!</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                {reviews.map((rev) => (
+                  <div key={rev.id} className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/60 relative">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold overflow-hidden uppercase">
+                        {rev.buyerAvatar ? (
+                          <img src={imgUrl(rev.buyerAvatar)} alt={rev.buyerName} className="w-full h-full object-cover" />
+                        ) : (
+                          rev.buyerName?.[0] || 'U'
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">{rev.buyerName || 'Anonymous'}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{formatDate(rev.createdAt)}</p>
+                      </div>
+                      <div className="ml-auto">
+                        <Stars rating={rev.rating} />
+                      </div>
+                    </div>
+                    {rev.comment ? (
+                      <p className="text-xs text-slate-600 leading-relaxed font-medium pl-1">{rev.comment}</p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic pl-1">No comment written</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── Product Meta ── */}

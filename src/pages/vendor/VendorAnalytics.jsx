@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, ShoppingBag, Wallet, TrendingUp, DollarSign, Users, Eye, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { Package, ShoppingBag, Wallet, TrendingUp, DollarSign, Users, Eye, BarChart3, ArrowUpRight, ArrowDownRight, Star, MessageSquare } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../../store/authSlice'
-import { vendorsAPI, ordersAPI, productsAPI, walletAPI } from '../../services/endpoints'
+import { vendorsAPI, ordersAPI, productsAPI, walletAPI, reviewsAPI } from '../../services/endpoints'
 import { PageLoader } from '../../components/common'
+import { Stars } from '../../components/common'
 import { formatCurrency, imgUrl } from '../../utils/helpers'
 
 function VendorAnalytics() {
@@ -13,6 +14,8 @@ function VendorAnalytics() {
   const [orders, setOrders]       = useState([])
   const [products, setProducts]   = useState([])
   const [wallet, setWallet]       = useState(null)
+  const [stats, setStats]         = useState(null)
+  const [reviews, setReviews]     = useState([])
   const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
@@ -20,10 +23,14 @@ function VendorAnalytics() {
       ordersAPI.vendorOrders().catch(() => ({ data: [] })),
       productsAPI.myProducts().catch(() => ({ data: [] })),
       walletAPI.getMe().catch(() => ({ data: {} })),
-    ]).then(([o, p, w]) => {
+      vendorsAPI.getStats().catch(() => ({ data: {} })),
+      reviewsAPI.getVendorReviews().catch(() => ({ data: [] })),
+    ]).then(([o, p, w, s, r]) => {
       setOrders(o.data?.orders || o.data || [])
       setProducts(p.data?.products || p.data || [])
       setWallet(w.data?.wallet || w.data)
+      setStats(s.data?.stats || s.data || {})
+      setReviews(r.data || [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -58,8 +65,8 @@ function VendorAnalytics() {
   const STATS = [
     { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: DollarSign, trend: '+12%', up: true, gradient: 'from-emerald-500 to-teal-600' },
     { label: 'Total Orders', value: orders.length, icon: ShoppingBag, trend: `${pendingOrders.length} active`, up: true, gradient: 'from-blue-500 to-indigo-600' },
-    { label: 'Products Listed', value: totalProducts, icon: Package, trend: `${activeProducts} active`, up: true, gradient: 'from-violet-500 to-purple-600' },
-    { label: 'Avg. Order Value', value: formatCurrency(avgOrderValue), icon: TrendingUp, trend: '+5%', up: true, gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Wallet Balance', value: formatCurrency(wallet?.availableBalance || 0), icon: Wallet, trend: `Balance`, up: true, gradient: 'from-violet-500 to-purple-600' },
+    { label: 'Store Rating', value: `${Number(stats?.avgRating || 0).toFixed(1)} ★`, icon: Star, trend: `${stats?.reviewsCount || 0} reviews`, up: true, gradient: 'from-amber-500 to-orange-600' },
   ]
 
   if (loading) return <PageLoader />
@@ -216,6 +223,112 @@ function VendorAnalytics() {
           </div>
         )}
       </motion.div>
+
+      {/* Ratings Breakdown and Customer Feedback Reviews */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ratings Breakdown */}
+        <motion.div variants={itemV} className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+          <h2 className="text-lg font-display font-bold text-slate-900 mb-2">Rating Distribution</h2>
+          <p className="text-xs text-slate-500 mb-6">Customer feedback breakdown</p>
+          
+          <div className="space-y-3">
+            {[5, 4, 3, 2, 1].map(stars => {
+              const count = reviews.filter(r => r.rating === stars).length;
+              const pct = reviews.length ? Math.round((count / reviews.length) * 100) : 0;
+              const barColors = {
+                5: 'bg-emerald-500',
+                4: 'bg-teal-500',
+                3: 'bg-amber-500',
+                2: 'bg-orange-500',
+                1: 'bg-red-500'
+              };
+              return (
+                <div key={stars} className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-600 w-3">{stars}</span>
+                  <Star size={12} className="text-amber-400 fill-amber-400 shrink-0" />
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }} 
+                      animate={{ width: `${pct}%` }} 
+                      transition={{ duration: 0.8 }}
+                      className={`h-full rounded-full ${barColors[stars]}`} 
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 w-12 text-right">{count} ({pct}%)</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-500 font-semibold">Average Rating</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-2xl font-black text-slate-900 leading-none">
+                  {Number(stats?.avgRating || 0).toFixed(1)}
+                </span>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star 
+                        key={s} 
+                        size={10} 
+                        className={s <= Math.round(stats?.avgRating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-bold text-slate-400 mt-0.5">{stats?.reviewsCount || 0} reviews</span>
+                </div>
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
+              <Star size={24} className="fill-amber-500" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Recent Feedback Reviews */}
+        <motion.div variants={itemV} className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-display font-bold text-slate-900">Recent Customer Feedback</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Reviews submitted for your products</p>
+            </div>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              <MessageSquare size={28} className="mx-auto text-slate-400 mb-3" />
+              <p className="text-sm font-bold text-slate-700 mb-1">No reviews yet</p>
+              <p className="text-xs font-bold text-slate-400">Feedback from customers will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+              {reviews.slice(0, 6).map((rev) => (
+                <div key={rev.id} className="flex gap-4 p-4 rounded-2xl bg-slate-50/60 border border-slate-100/50 hover:bg-slate-50 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden shrink-0">
+                    <img src={imgUrl(rev.productImage)} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-800 truncate">{rev.productName}</p>
+                      <div className="flex items-center shrink-0">
+                        <Stars rating={rev.rating} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                      By {rev.buyerName || 'Anonymous'} · {formatDate(rev.createdAt)}
+                    </p>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed mt-2 italic bg-white/60 p-2.5 rounded-xl border border-slate-100/30">
+                      "{rev.comment || 'No comment written'}"
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
     </motion.div>
   )
 }

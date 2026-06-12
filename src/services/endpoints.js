@@ -106,3 +106,12 @@ export const notificationsAPI = {
   markAsRead:    async (id) => api.put(`/notifications/${id}/read`),
   markAllRead:   async ()   => api.put('/notifications/read-all'),
 }
+
+// REVIEWS
+export const reviewsAPI = {
+  create:            async (data)      => api.post('/reviews', data),
+  getProductReviews: async (productId) => api.get(`/reviews/product/${productId}`),
+  getVendorReviews:  async ()           => api.get('/reviews/vendor'),
+  getAll:            async ()           => api.get('/reviews'),
+  delete:            async (id)         => api.delete(`/reviews/${id}`),
+}
