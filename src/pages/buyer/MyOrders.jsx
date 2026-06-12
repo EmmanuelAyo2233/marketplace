@@ -98,8 +98,8 @@ export function OrderDetail() {
   if (loading) return <PageLoader />
   if (!order) return <div className="text-center py-16 text-slate-500">Order not found</div>
 
-  const canConfirm  = order.status === 'shipped' || order.isShipped
-  const canDispute  = !order.isDelivered
+  const canConfirm  = (order.status === 'shipped' || order.isShipped) && !order.isDelivered && order.status !== 'delivered' && order.status !== 'completed'
+  const canDispute  = !order.isDelivered && order.status !== 'delivered' && order.status !== 'completed'
 
   return (
     <div>
@@ -137,7 +137,7 @@ export function OrderDetail() {
                     <span className="font-bold text-slate-800">{formatCurrency((item.qty || item.quantity) * (item.price || item.unitPrice))}</span>
                     
                     {/* Review Button/Badge */}
-                    {(order.status === 'delivered' || order.isDelivered) && (
+                    {(order.status === 'delivered' || order.status === 'completed' || order.isDelivered) && (
                       <div className="ml-2">
                         {item.reviewId ? (
                           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-100">
